@@ -1,4 +1,0 @@
-help: |
-  Run repoclosure for a repository
-
-  Repoclosure ensures that all dependencies are met and all packages are installable.

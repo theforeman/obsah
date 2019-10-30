@@ -1,4 +1,0 @@
----
-dependencies:
-  - { role: git_annex_setup }
-  - { role: spec_file }

@@ -1,5 +1,0 @@
----
-diff_package_type: koji
-diff_package_koji_command: koji
-diff_package_skip: true
-scl: False
