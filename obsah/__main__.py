@@ -1,5 +1,5 @@
 """
-Main module file. This allows you to run python -m obal
+Main module file. This allows you to run python -m obsah
 """
-from obal import main  # pylint:disable=no-name-in-module
+from obsah import main  # pylint:disable=no-name-in-module
 main()

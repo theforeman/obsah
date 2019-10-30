@@ -2,7 +2,7 @@
 # PYTHON_ARGCOMPLETE_OK
 
 """
-Obal is a wrapper around Ansible playbooks. They are exposed as a command line application.
+Obsah is a wrapper around Ansible playbooks. They are exposed as a command line application.
 """
 
 from __future__ import print_function
@@ -25,7 +25,7 @@ except ImportError:
     argcomplete = None
 
 
-METADATA_FILENAME = 'metadata.obal.yaml'
+METADATA_FILENAME = 'metadata.obsah.yaml'
 
 
 # Need for PlaybookCLI to set the verbosity
@@ -75,8 +75,8 @@ class Playbook(object):
         """
         if not self._metadata:
             try:
-                with open(self._metadata_path) as obal_metadata:
-                    data = yaml.safe_load(obal_metadata)
+                with open(self._metadata_path) as obsah_metadata:
+                    data = yaml.safe_load(obsah_metadata)
             # Python 3 has FileNotFoundError, Python 2 doesn't
             except IOError as error:
                 if error.errno != errno.ENOENT:
@@ -175,7 +175,7 @@ class ApplicationConfig(object):
         """
         Return the name as shown to the user in the ArgumentParser
         """
-        return 'obal'
+        return 'obsah'
 
     @staticmethod
     def target_name():
@@ -189,13 +189,13 @@ class ApplicationConfig(object):
         """
         Return the data path. Houses playbooks and configs.
         """
-        path = os.environ.get('OBAL_DATA')
+        path = os.environ.get('OBSAH_DATA')
         if path is None:
             path = pkg_resources.resource_filename(__name__, 'data')
             if not os.path.isabs(path):
                 # this is essentially a workaround for
                 # https://github.com/pytest-dev/pytest-xdist/issues/414
-                distribution = pkg_resources.get_distribution('obal')
+                distribution = pkg_resources.get_distribution('obsah')
                 path = os.path.join(distribution.location, path)
 
         return path
@@ -205,21 +205,21 @@ class ApplicationConfig(object):
         """
         Return the inventory path
         """
-        return os.environ.get('OBAL_INVENTORY', os.path.join(os.getcwd(), 'package_manifest.yaml'))
+        return os.environ.get('OBSAH_INVENTORY', os.path.join(os.getcwd(), 'package_manifest.yaml'))
 
     @classmethod
     def playbooks_path(cls):
         """
         Return the default playbooks path
         """
-        return os.environ.get('OBAL_PLAYBOOKS', os.path.join(cls.data_path(), 'playbooks'))
+        return os.environ.get('OBSAH_PLAYBOOKS', os.path.join(cls.data_path(), 'playbooks'))
 
     @classmethod
     def ansible_config_path(cls):
         """
         Return the ansible.cfg path
         """
-        return os.environ.get('OBAL_ANSIBLE_CFG', os.path.join(cls.data_path(), 'ansible.cfg'))
+        return os.environ.get('OBSAH_ANSIBLE_CFG', os.path.join(cls.data_path(), 'ansible.cfg'))
 
     @classmethod
     def playbooks(cls):
@@ -248,7 +248,7 @@ def find_targets(inventory_path):
     return targets
 
 
-def obal_argument_parser(application_config=ApplicationConfig, playbooks=None, targets=None):
+def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, targets=None):
     """
     Construct an argument parser with the given actions and target choices.
     """
@@ -260,7 +260,7 @@ def obal_argument_parser(application_config=ApplicationConfig, playbooks=None, t
 
     parser = argparse.ArgumentParser(application_config.name())
 
-    parser.obal_arguments = []
+    parser.obsah_arguments = []
 
     parent_parser = argparse.ArgumentParser(add_help=False)
     parent_parser.add_argument("-v", "--verbose",
@@ -300,7 +300,7 @@ def obal_argument_parser(application_config=ApplicationConfig, playbooks=None, t
         for variable in playbook.playbook_variables:
             subparser.add_argument(variable.parameter, help=variable.help_text, dest=variable.name,
                                    action=variable.action, default=argparse.SUPPRESS)
-            parser.obal_arguments.append(variable.name)
+            parser.obsah_arguments.append(variable.name)
 
     if argcomplete:
         argcomplete.autocomplete(parser)
@@ -308,7 +308,7 @@ def obal_argument_parser(application_config=ApplicationConfig, playbooks=None, t
     return parser
 
 
-def generate_ansible_args(inventory_path, args, obal_arguments):
+def generate_ansible_args(inventory_path, args, obsah_arguments):
     """
     Generate the arguments to run ansible based on the parsed command line arguments
     """
@@ -321,7 +321,7 @@ def generate_ansible_args(inventory_path, args, obal_arguments):
     for extra_var in args.extra_vars:
         ansible_args.extend(["-e", extra_var])
 
-    variables = {arg: getattr(args, arg) for arg in obal_arguments if hasattr(args, arg)}
+    variables = {arg: getattr(args, arg) for arg in obsah_arguments if hasattr(args, arg)}
     if variables:
         ansible_args.extend(["-e", json.dumps(variables, sort_keys=True)])
 
@@ -347,7 +347,7 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
 
     targets = find_targets(inventory_path)
 
-    parser = obal_argument_parser(application_config, targets=targets)
+    parser = obsah_argument_parser(application_config, targets=targets)
 
     args = parser.parse_args(cliargs)
 
@@ -357,7 +357,7 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
 
     from ansible.cli.playbook import PlaybookCLI # pylint: disable=all
 
-    ansible_args = generate_ansible_args(inventory_path, args, parser.obal_arguments)
+    ansible_args = generate_ansible_args(inventory_path, args, parser.obsah_arguments)
     ansible_playbook = (["ansible-playbook"] + ansible_args)
 
     if args.verbose:

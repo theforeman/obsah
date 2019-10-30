@@ -1,5 +1,5 @@
 import pytest
-import obal
+import obsah
 
 
 @pytest.fixture
@@ -9,7 +9,7 @@ def playbooks_path(fixture_dir):
 
 @pytest.fixture
 def application_config(playbooks_path):
-    class MockApplicationConfig(obal.ApplicationConfig):
+    class MockApplicationConfig(obsah.ApplicationConfig):
         @staticmethod
         def playbooks_path():
             return playbooks_path.strpath
@@ -19,23 +19,23 @@ def application_config(playbooks_path):
 
 @pytest.fixture
 def parser(application_config, targets=['testpackage']):
-    return obal.obal_argument_parser(application_config, targets=targets)
+    return obsah.obsah_argument_parser(application_config, targets=targets)
 
 
 def test_find_no_targets(fixture_dir):
-    targets = obal.find_targets((fixture_dir / 'nope.yaml').strpath)
+    targets = obsah.find_targets((fixture_dir / 'nope.yaml').strpath)
     assert targets is None
 
 
 def test_find_targets(fixture_dir):
-    targets = obal.find_targets((fixture_dir / 'inventory.yaml').strpath)
+    targets = obsah.find_targets((fixture_dir / 'inventory.yaml').strpath)
     assert targets
     assert 'testpackage' in targets
 
 
 def test_playbook_constructor(application_config, playbooks_path):
     path = (playbooks_path / 'setup' / 'setup.yaml').strpath
-    playbook = obal.Playbook(path, application_config)
+    playbook = obsah.Playbook(path, application_config)
     assert playbook.path == path
     assert playbook.name == 'setup'
 
@@ -48,7 +48,7 @@ def test_playbook_constructor(application_config, playbooks_path):
 ])
 def test_playbook_takes_target_parameter(application_config, playbooks_path, playbook, expected):
     path = (playbooks_path / playbook / '{}.yaml'.format(playbook)).strpath
-    assert obal.Playbook(path, application_config).takes_target_parameter == expected
+    assert obsah.Playbook(path, application_config).takes_target_parameter == expected
 
 
 def test_parser_no_arguments(parser):
@@ -86,10 +86,10 @@ def test_generate_ansible_args(playbooks_path, parser, cliargs, expected):
                      '--inventory', 'inventory.yml']
 
     args = parser.parse_args(cliargs)
-    ansible_args = obal.generate_ansible_args('inventory.yml', args, parser.obal_arguments)
+    ansible_args = obsah.generate_ansible_args('inventory.yml', args, parser.obsah_arguments)
     assert ansible_args == base_expected + expected
 
 
-def test_obal_argument_parser_help(fixture_dir, parser):
+def test_obsah_argument_parser_help(fixture_dir, parser):
     path = fixture_dir / 'help.txt'
     assert path.read() == parser.format_help()

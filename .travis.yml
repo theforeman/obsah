@@ -7,15 +7,8 @@ python:
   - '3.7'
 install:
   - pip install -r requirements-test.txt
-  - curl --create-dirs -o /home/travis/.local/bin/spectool https://pagure.io/rpmdevtools/raw/master/f/spectool.in
-  - curl --create-dirs -o /home/travis/.local/bin/rpmdev-bumpspec https://pagure.io/rpmdevtools/raw/6f387c1deaa5cbed770310e288abde04b17421dc/f/rpmdev-bumpspec
-  - curl --create-dirs -o /home/travis/.local/bin/rpmdev-packager https://pagure.io/rpmdevtools/raw/master/f/rpmdev-packager
-  - chmod +x /home/travis/.local/bin/spectool
-  - chmod +x /home/travis/.local/bin/rpmdev-bumpspec
-  - chmod +x /home/travis/.local/bin/rpmdev-packager
 script:
   - tox
-  - docker build --build-arg VERSION=master -t quay.io/foreman/obal:latest .
 deploy:
   - provider: pypi
     user: theforeman
@@ -24,8 +17,3 @@ deploy:
     on:
       tags: true
       python: '3.6'
-addons:
-  apt:
-    packages:
-    - git-annex
-    - rpm
