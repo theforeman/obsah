@@ -1,3 +1,0 @@
----
-- name: "Include {{ build_package_build_system }}.yml"
-  include_tasks: "{{ build_package_build_system }}.yml"

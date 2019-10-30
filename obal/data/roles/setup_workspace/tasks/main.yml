@@ -1,8 +1,0 @@
-- name: 'Define tmp directory'
-  set_fact:
-    obal_tmp_dir: "{{ inventory_dir }}/.tmp"
-
-- name: 'Ensure .tmp directory'
-  file:
-    state: 'directory'
-    path: "{{ obal_tmp_dir }}"

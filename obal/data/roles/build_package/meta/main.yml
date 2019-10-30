@@ -1,4 +1,0 @@
----
-dependencies:
-  - { role: setup_workspace }
-  - { role: setup_sources }
