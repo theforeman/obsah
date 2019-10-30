@@ -25,7 +25,6 @@ except ImportError:
     argcomplete = None
 
 
-METADATA_FILENAME = 'metadata.obsah.yaml'
 
 
 # Need for PlaybookCLI to set the verbosity
@@ -60,7 +59,7 @@ class Playbook(object):
         self.application_config = application_config
         directory = os.path.dirname(self.path)
         self.name = os.path.basename(directory)
-        self._metadata_path = os.path.join(directory, METADATA_FILENAME)
+        self._metadata_path = os.path.join(directory, self.application_config.metadata_name())
         self._metadata = None
 
     @property
@@ -185,6 +184,14 @@ class ApplicationConfig(object):
         return 'packages'
 
     @staticmethod
+    def metadata_name():
+        """
+        Return the name of the metadata file.
+        """
+        return 'metadata.obsah.yaml'
+
+
+    @staticmethod
     def data_path():
         """
         Return the data path. Houses playbooks and configs.
@@ -228,7 +235,7 @@ class ApplicationConfig(object):
         """
         paths = glob.glob(os.path.join(cls.playbooks_path(), '*', '*.yaml'))
         return sorted(Playbook(playbook_path, cls) for playbook_path in paths if
-                      os.path.basename(playbook_path) != METADATA_FILENAME)
+                      os.path.basename(playbook_path) != cls.metadata_name())
 
 
 def find_targets(inventory_path):
