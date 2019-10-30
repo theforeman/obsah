@@ -1,7 +1,7 @@
 [paths]
-source = obal/
-  .tox/*/lib/*/site-packages/obal/
+source = obsah/
+  .tox/*/lib/*/site-packages/obsah/
 
 [run]
-source = obal/
+source = obsah/
 parallel = true

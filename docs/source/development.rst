@@ -1,7 +1,7 @@
-Developing Obal
+Developing Obsah
 ===============
 
-Obal is written with support for Python 2.7 and Python 3.5 or higher. To provide the command line we rely on the Python built in `argparse`_ and `Ansible`_. For testing we use `Pytest`_ but this is wrapped up with `Tox`_ to test multiple environments.
+Obsah is written with support for Python 2.7 and Python 3.5 or higher. To provide the command line we rely on the Python built in `argparse`_ and `Ansible`_. For testing we use `Pytest`_ but this is wrapped up with `Tox`_ to test multiple environments.
 
 .. _argparse: https://docs.python.org/3/library/argparse.html
 .. _Ansible: https://www.ansible.com/
@@ -11,16 +11,16 @@ Obal is written with support for Python 2.7 and Python 3.5 or higher. To provide
 Writing actions
 ---------------
 
-All Ansible is contained in `obal/data`. There we have `playbooks`, `roles` and `modules`.
+All Ansible is contained in `obsah/data`. There we have `playbooks`, `roles` and `modules`.
 
 A `playbook` with `metadata` is considered an action and exposed to the user as such.
 
 Writing playbooks
 ~~~~~~~~~~~~~~~~~
 
-We have a slightly non-standard playbooks layout. Every playbook is contained in its own directory and named after the directory, like `release/release.yaml` for the `release` action. It can also contain a `metadata.obal.yaml`. While playbooks are pure Ansible, the metadata is the data Obal needs to extract to build a CLI.
+We have a slightly non-standard playbooks layout. Every playbook is contained in its own directory and named after the directory, like `release/release.yaml` for the `release` action. It can also contain a `metadata.obsah.yaml`. While playbooks are pure Ansible, the metadata is the data Obsah needs to extract to build a CLI.
 
-Obal uses the inventory to operate on. The inventory is typically composed of packages, but there are some special hosts:
+Obsah uses the inventory to operate on. The inventory is typically composed of packages, but there are some special hosts:
 
 * localhost
 * packages
@@ -31,14 +31,14 @@ Packages is the entire set of all packages. These are exposed on the command lin
 
 Within Ansible playbooks you can choose on which inventory items to operate through `hosts`. We set the additional limitation that hosts must always be a list. Our setup playbook is an example of a local connection:
 
-.. literalinclude:: ../../obal/data/playbooks/setup/setup.yaml
+.. literalinclude:: ../../obsah/data/playbooks/setup/setup.yaml
   :language: yaml
   :caption: setup.yaml
   :emphasize-lines: 2,3
 
 When dealing with packages we typically include the `package_variables` role to set various variables:
 
-.. literalinclude:: ../../obal/data/playbooks/changelog/changelog.yaml
+.. literalinclude:: ../../obsah/data/playbooks/changelog/changelog.yaml
   :language: yaml
   :caption: changelog.yaml
   :emphasize-lines: 6,7
@@ -46,19 +46,19 @@ When dealing with packages we typically include the `package_variables` role to 
 Exposing playbooks using metadata
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default Obal exposes a playbook based on its name. It can also automatically detect whether it accepts a packages parameter. To provide a better experience we introduce metadata via `metadata.obal.yaml` in the same directory.
+By default Obsah exposes a playbook based on its name. It can also automatically detect whether it accepts a packages parameter. To provide a better experience we introduce metadata via `metadata.obsah.yaml` in the same directory.
 
 An example:
 
-.. literalinclude:: ../../tests/fixtures/playbooks/dummy/metadata.obal.yaml
+.. literalinclude:: ../../tests/fixtures/playbooks/dummy/metadata.obsah.yaml
   :language: yaml
-  :caption: playbooks/dummy/metadata.obal.yaml
+  :caption: playbooks/dummy/metadata.obsah.yaml
 
-The help text is a top level key. The first line is used in ``obal --help``:
+The help text is a top level key. The first line is used in ``obsah --help``:
 
 .. code-block:: none
 
-   usage: obal [-h] action ...
+   usage: obsah [-h] action ...
 
    positional arguments:
      action          which action to execute
@@ -68,11 +68,11 @@ The help text is a top level key. The first line is used in ``obal --help``:
      -h, --help      show this help message and exit
 
 
-When we execute ``obal dummy --help`` we see more show up:
+When we execute ``obsah dummy --help`` we see more show up:
 
 .. code-block:: none
 
-    usage: obal dummy [-h] [-v] [-e EXTRA_VARS]
+    usage: obsah dummy [-h] [-v] [-e EXTRA_VARS]
                   [--automatic AUTOMATIC]
                   [--explicit MAPPED]
                   package [package ...]
@@ -120,12 +120,12 @@ For every variable the key is the variable in Ansible. It also needs a ``help``.
       changelog:
         help: The changelog message
 
-This results into the following ``obal changelog --help`` output:
+This results into the following ``obsah changelog --help`` output:
 
 .. code-block:: none
   :emphasize-lines: 13,14
 
-   usage: obal changelog [-h] [-v] [-e EXTRA_VARS]
+   usage: obsah changelog [-h] [-v] [-e EXTRA_VARS]
                          [--changelog CHANGELOG]
                          package [package ...]
 
@@ -140,7 +140,7 @@ This results into the following ``obal changelog --help`` output:
      --changelog CHANGELOG
                            The text for the changelog entry
 
-Now you might notice that this results in a ``obal changelog --changelog "my message"`` which feels a bit redundant. That's why there's mapping built in.
+Now you might notice that this results in a ``obsah changelog --changelog "my message"`` which feels a bit redundant. That's why there's mapping built in.
 
 
 .. code-block:: yaml
@@ -156,7 +156,7 @@ This results into the following help:
 .. code-block:: none
   :emphasize-lines: 13
 
-    usage: obal changelog [-h] [-v] [-e EXTRA_VARS]
+    usage: obsah changelog [-h] [-v] [-e EXTRA_VARS]
                           [--message CHANGELOG]
                           package [package ...]
 
@@ -204,7 +204,7 @@ Which translates into:
 
   --scratch             To indicate this is a scratch build
 
-Calling ``obal release --scratch`` will result in ``ansible-playbook release -e '{"scratch": true}'``.
+Calling ``obsah release --scratch`` will result in ``ansible-playbook release -e '{"scratch": true}'``.
 
 The ``store_false`` behaves in the same way as ``store_true`` but with a different value.
 
@@ -219,7 +219,7 @@ Storing lists can be done with the ``append`` action. It's exposed as a repeatab
         action: append
         help: Specifiy the releasers
 
-Calling ``obal release --releaser first --releaser second`` will translate to ``ansible-playbook release -e '{"releasers": ["first", "second"]}'``.
+Calling ``obsah release --releaser first --releaser second`` will translate to ``ansible-playbook release -e '{"releasers": ["first", "second"]}'``.
 
 
 Fixing the tests
@@ -231,7 +231,7 @@ First of all, the tests for various playbooks are stored in ``tests/test_playboo
 * ``test_is_documented`` verifies you're written a help text for your playbook.
 * ``test_help`` captures the help texts in ``tests/fixtures/help`` to ensure there are no unintended changes. Rendered output is easier to review. Because manually copying output is stupid, we automatically store the output if the file is missing. To update the content, remove it and run the tests (``pytest tests/test_playbooks.py::test_help -v``). Note it marks that test as skipped. Running it again should mark it as passed.
 
-Releasing obal
+Releasing obsah
 --------------
 
 Before creating a new release, it's best to check if there are `issues`_ or `pull requests`_ that should be merged.
@@ -253,6 +253,6 @@ This will modify all the files containing the version number, create a git commi
 
     $ git push
 
-.. _issues: https://github.com/theforeman/obal/issues
-.. _pull requests: https://github.com/theforeman/obal/pulls
+.. _issues: https://github.com/theforeman/obsah/issues
+.. _pull requests: https://github.com/theforeman/obsah/pulls
 .. _bump2version: https://github.com/c4urself/bump2version

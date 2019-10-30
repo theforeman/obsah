@@ -1,5 +1,5 @@
 """
-Setup file for obal
+Setup file for obsah
 """
 
 # To use a consistent encoding
@@ -35,12 +35,12 @@ def find_package_data(package, data_dir):
 
 
 setup(
-    name='obal',
-    version='0.5.1',
+    name='obsah',
+    version='0.0.1',
     description='packaging wrapper using ansible',
     long_description=get_long_description(),
     long_description_content_type='text/markdown',
-    url='https://github.com/theforeman/obal',
+    url='https://github.com/theforeman/obsah',
     author='The Foreman Project',
     author_email='foreman-dev@googlegroups.com',
     zip_safe=False,
@@ -68,12 +68,12 @@ setup(
     },
 
     package_data={
-        'obal': find_package_data('obal', 'data'),
+        'obsah': find_package_data('obsah', 'data'),
     },
 
     entry_points={
         'console_scripts': [
-            'obal=obal:main',
+            'obsah=obsah:main',
         ],
     },
 )
