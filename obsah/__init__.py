@@ -320,6 +320,9 @@ def generate_ansible_args(inventory_path, args, obsah_arguments):
     Generate the arguments to run ansible based on the parsed command line arguments
     """
     ansible_args = [args.playbook.path, '--inventory', inventory_path]
+
+    ansible_args.extend(['-e', 'project_dir=%s' % os.getcwd()])
+
     if hasattr(args, 'target'):
         limit = ':'.join(args.target)
         ansible_args.extend(['--limit', limit])
