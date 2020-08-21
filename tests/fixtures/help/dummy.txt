@@ -2,7 +2,7 @@ usage: obsah [-h] action ...
 
 positional arguments:
   action          which action to execute
-    dummy         Short description
+    custom_target Short description
     multiple_plays
     repoclosure
     setup

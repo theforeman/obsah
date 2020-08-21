@@ -102,6 +102,10 @@ class Playbook(object):
         return any(self.application_config.target_name() in play['hosts'] for play in plays)
 
     @property
+    def custom_target(self):
+        return self.metadata.get('target', False)
+
+    @property
     def playbook_variables(self):
         """
         The playbook variables that should be exposed to the user
@@ -297,7 +301,13 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                                           formatter_class=argparse.RawDescriptionHelpFormatter)
         subparser.set_defaults(playbook=playbook)
 
-        if playbook.takes_target_parameter:
+        if playbook.custom_target:
+            subparser.add_argument(playbook.custom_target,
+                                   metavar=playbook.custom_target,
+                                   nargs='+',
+                                   help="the target to execute the action against")
+
+        elif playbook.takes_target_parameter:
             subparser.add_argument('target',
                                    metavar='target',
                                    choices=targets,

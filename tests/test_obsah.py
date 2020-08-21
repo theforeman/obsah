@@ -1,10 +1,18 @@
 import pytest
+import os
+import glob
 import obsah
 
 
 @pytest.fixture
 def playbooks_path(fixture_dir):
     return fixture_dir / 'playbooks'
+
+
+def playbooks(fix_dir):
+    paths = glob.glob(os.path.join(fixture_dir(), 'playbooks', '*', '*.yaml'))
+    return sorted(Playbook(playbook_path, Playbook) for playbook_path in paths if
+                  os.path.basename(playbook_path) != Playbook.metadata_name())
 
 
 @pytest.fixture
@@ -15,6 +23,20 @@ def application_config(playbooks_path):
             return playbooks_path.strpath
 
     return MockApplicationConfig
+
+
+@pytest.fixture
+def help_dir(fixture_dir):
+    return fixture_dir / 'help'
+
+
+def playbook_id(fixture_value):
+    return fixture_value.name
+
+
+@pytest.fixture(params=playbooks(fixture_dir), ids=playbook_id)
+def playbook(request):
+    yield request.param
 
 
 @pytest.fixture
@@ -90,6 +112,6 @@ def test_generate_ansible_args(playbooks_path, parser, cliargs, expected):
     assert ansible_args == base_expected + expected
 
 
-def test_obsah_argument_parser_help(fixture_dir, parser):
-    path = fixture_dir / 'help.txt'
-    assert path.read() == parser.format_help()
+def test_obsah_argument_parser_help(playbook, help_dir, parser):
+    help_file = help_dir / '{}.txt'.format(playbook.name)
+    assert help_file.read() == '{}/{}/help.txt'.format(help_dir, playbook.name)

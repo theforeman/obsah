@@ -1,0 +1,16 @@
+help: >
+  Short description
+
+
+  Full text
+  on multiple lines
+
+  with an explicit newline
+target: custom
+variables:
+  mapped:
+    parameter: --explicit
+    help: Explicitly specified parameter
+  store_true:
+    action: store_true
+    help: Action that stores true if passed
