@@ -1,0 +1,6 @@
+help: |
+  positional argument test
+variables:
+  tag:
+    parameter: tag
+    help: the tag as a positional argument
