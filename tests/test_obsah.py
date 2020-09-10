@@ -42,6 +42,7 @@ def test_playbook_constructor(application_config, playbooks_path):
 
 @pytest.mark.parametrize('playbook,expected', [
     ('setup', False),
+    ('positional', False),
     ('dummy', True),
     ('multiple_plays', True),
     ('repoclosure', True),
@@ -59,6 +60,8 @@ def test_parser_no_arguments(parser):
 @pytest.mark.parametrize('cliargs,expected', [
     (['setup'],
      []),
+    (['positional', 'tag1'],
+     ['-e', '{"tag": "tag1"}']),
     (['dummy', 'testpackage'],
      ['--limit', 'testpackage']),
     (['dummy', 'testpackage', '--verbose'],

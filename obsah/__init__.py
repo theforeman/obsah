@@ -305,8 +305,11 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                                    help="the target to execute the action against")
 
         for variable in playbook.playbook_variables:
-            subparser.add_argument(variable.parameter, help=variable.help_text, dest=variable.name,
-                                   action=variable.action, default=argparse.SUPPRESS)
+            argument_args = {'help': variable.help_text, 'action': variable.action,
+                             'default': argparse.SUPPRESS}
+            if variable.parameter.startswith('--'):
+                argument_args['dest'] = variable.name
+            subparser.add_argument(variable.parameter, **argument_args)
             parser.obsah_arguments.append(variable.name)
 
     if argcomplete:
