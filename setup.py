@@ -36,7 +36,7 @@ def find_package_data(package, data_dir):
 
 setup(
     name='obsah',
-    version='0.0.1',
+    version='0.0.2',
     description='packaging wrapper using ansible',
     long_description=get_long_description(),
     long_description_content_type='text/markdown',
