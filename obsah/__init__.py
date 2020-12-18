@@ -99,7 +99,7 @@ class Playbook(object):
         with open(self.path) as playbook_file:
             plays = yaml.safe_load(playbook_file.read())
 
-        return any(self.application_config.target_name() in play['hosts'] for play in plays)
+        return any(self.application_config.target_name() in play.get('hosts', []) for play in plays)
 
     @property
     def playbook_variables(self):
