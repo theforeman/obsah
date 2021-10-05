@@ -31,6 +31,7 @@ def test_find_targets(fixture_dir):
     targets = obsah.find_targets((fixture_dir / 'inventory.yaml').strpath)
     assert targets
     assert 'testpackage' in targets
+    assert 'all' in targets
 
 
 def test_playbook_constructor(application_config, playbooks_path):

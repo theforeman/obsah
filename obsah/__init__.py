@@ -251,7 +251,6 @@ def find_targets(inventory_path):
                                              sources=inventory_path)
         targets = list(ansible_inventory.hosts.keys())
         targets.extend(ansible_inventory.groups.keys())
-        targets.extend(['all'])
     return targets
 
 
