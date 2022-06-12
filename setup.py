@@ -77,4 +77,9 @@ setup(
             'obsah=obsah:main',
         ],
     },
+
+    project_urls={
+        "Documentation": "https://obsah.readthedocs.io/en/latest/",
+        "Source": "https://github.com/theforeman/obsah",
+    },
 )
