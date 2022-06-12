@@ -60,7 +60,7 @@ setup(
 
     keywords='ansible foreman packaging koji brew mock',
 
-    packages=find_packages(exclude=['contrib', 'docs', 'tests']),
+    packages=find_packages(exclude=['contrib', 'docs']),
 
     install_requires=['ansible >= 2.5'],
 
