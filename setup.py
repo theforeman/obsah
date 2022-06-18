@@ -65,7 +65,10 @@ setup(
 
     packages=find_packages(exclude=['contrib', 'docs']),
 
-    install_requires=['ansible >= 2.5'],
+    install_requires=[
+        'ansible >= 2.5; python_version < "3.8"',
+        'ansible-core; python_version >= "3.8"',
+    ],
 
     extras_require={
         'argcomplete': ['argcomplete'],
