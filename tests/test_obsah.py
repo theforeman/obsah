@@ -16,6 +16,14 @@ def application_config(playbooks_path):
         def playbooks_path():
             return playbooks_path.strpath
 
+        @staticmethod
+        def target_name():
+            return 'packages'
+
+        @staticmethod
+        def target_names():
+            return ['packages', 'repos']
+
     return MockApplicationConfig
 
 
@@ -34,6 +42,7 @@ def test_find_targets(fixture_dir):
     assert targets
     assert 'testpackage' in targets
     assert 'all' in targets
+    assert 'repos' in targets
 
 
 def test_playbook_constructor(application_config, playbooks_path):

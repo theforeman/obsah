@@ -99,7 +99,9 @@ class Playbook(object):
         with open(self.path) as playbook_file:
             plays = yaml.safe_load(playbook_file.read())
 
-        return any(self.application_config.target_name() in play.get('hosts', []) for play in plays)
+        target_names = set(self.application_config.target_names())
+
+        return any(len(target_names.intersection(play.get('hosts', []))) > 0 for play in plays)
 
     @property
     def playbook_variables(self):
@@ -182,6 +184,13 @@ class ApplicationConfig(object):
         Return the name of the target in the playbook if the playbook takes a parameter.
         """
         return 'packages'
+
+    @staticmethod
+    def target_names():
+        """
+        Return an array of names of the target in the playbook if the playbook takes a parameter.
+        """
+        return [self.target_name()]
 
     @staticmethod
     def metadata_name():

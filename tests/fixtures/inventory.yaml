@@ -6,3 +6,7 @@ packages:
 server:
   hosts:
     testpackage: {}
+
+repos:
+  hosts:
+    myrepo: {}
