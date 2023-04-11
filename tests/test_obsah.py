@@ -16,6 +16,24 @@ def application_config(playbooks_path):
         def playbooks_path():
             return playbooks_path.strpath
 
+        @staticmethod
+        def target_name():
+            return 'packages'
+
+    return MockApplicationConfig
+
+
+@pytest.fixture
+def application_config_multi_target(playbooks_path):
+    class MockApplicationConfig(obsah.ApplicationConfig):
+        @staticmethod
+        def playbooks_path():
+            return playbooks_path.strpath
+
+        @staticmethod
+        def target_names():
+            return ['packages', 'repos']
+
     return MockApplicationConfig
 
 
@@ -34,6 +52,7 @@ def test_find_targets(fixture_dir):
     assert targets
     assert 'testpackage' in targets
     assert 'all' in targets
+    assert 'repos' in targets
 
 
 def test_playbook_constructor(application_config, playbooks_path):
@@ -53,6 +72,17 @@ def test_playbook_constructor(application_config, playbooks_path):
 def test_playbook_takes_target_parameter(application_config, playbooks_path, playbook, expected):
     path = (playbooks_path / playbook / '{}.yaml'.format(playbook)).strpath
     assert obsah.Playbook(path, application_config).takes_target_parameter == expected
+
+@pytest.mark.parametrize('playbook,expected', [
+    ('setup', False),
+    ('positional', False),
+    ('dummy', True),
+    ('multiple_plays', True),
+    ('repoclosure', True),
+])
+def test_playbook_takes_multi_target_parameter(application_config_multi_target, playbooks_path, playbook, expected):
+    path = (playbooks_path / playbook / '{}.yaml'.format(playbook)).strpath
+    assert obsah.Playbook(path, application_config_multi_target).takes_target_parameter == expected
 
 
 def test_parser_no_arguments(parser):
