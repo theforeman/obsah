@@ -1,3 +1,5 @@
+import sys
+
 import pytest
 import obsah
 
@@ -96,4 +98,7 @@ def test_generate_ansible_args(playbooks_path, parser, cliargs, expected):
 
 def test_obsah_argument_parser_help(fixture_dir, parser):
     path = fixture_dir / 'help.txt'
-    assert path.read() == parser.format_help()
+    expected = path.read()
+    if sys.version_info >= (3, 10, 0):
+        expected = expected.replace('optional arguments:', 'options:')
+    assert expected == parser.format_help()
