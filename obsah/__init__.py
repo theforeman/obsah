@@ -15,9 +15,9 @@ import os
 import sys
 from collections import namedtuple
 from functools import total_ordering
+from importlib import resources
 
 import yaml
-import pkg_resources
 
 try:
     import argcomplete
@@ -207,12 +207,8 @@ class ApplicationConfig(object):
         """
         path = os.environ.get('OBSAH_DATA')
         if path is None:
-            path = pkg_resources.resource_filename(__name__, 'data')
-            if not os.path.isabs(path):
-                # this is essentially a workaround for
-                # https://github.com/pytest-dev/pytest-xdist/issues/414
-                distribution = pkg_resources.get_distribution('obsah')
-                path = os.path.join(distribution.location, path)
+            # TODO: deprecated in 3.11
+            path = resources.path(__name__, 'data')
 
         return path
 
