@@ -127,7 +127,11 @@ def test_generate_ansible_args(playbooks_path, parser, cliargs, expected):
 
 
 def test_obsah_argument_parser_help(fixture_dir, parser):
-    path = fixture_dir / 'help.txt'
+    # https://github.com/python/cpython/commit/7cc773ba3d07d4a2e6cd39063fd1954abd6ae8f1
+    if sys.version_info >= (3, 12, 7):
+        path = fixture_dir / 'help-3.12.txt'
+    else:
+        path = fixture_dir / 'help.txt'
     expected = path.read()
     if sys.version_info >= (3, 10, 0):
         expected = expected.replace('optional arguments:', 'options:')
