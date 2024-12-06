@@ -1,0 +1,12 @@
+usage: obsah [-h] action ...
+
+positional arguments:
+  action            which action to execute
+    dummy           Short description
+    multiple_plays
+    positional      positional argument test
+    repoclosure
+    setup
+
+options:
+  -h, --help        show this help message and exit
