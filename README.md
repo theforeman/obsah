@@ -6,5 +6,5 @@
 
 ## necessary tools
 
-- `python` (2 or 3)
+- `python` 3
 - `ansible`
