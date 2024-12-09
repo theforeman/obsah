@@ -20,7 +20,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'Obsah'
-copyright = '2018, The Foreman'
+copyright = '2018 - 2024, The Foreman'
 author = 'The Foreman'
 
 try:
