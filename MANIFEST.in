@@ -1,4 +1,5 @@
 exclude .bumpversion.cfg
+exclude .readthedocs.yaml
 include requirements*.txt
 include LICENSE
 include .coveragerc
