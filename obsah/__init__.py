@@ -8,7 +8,6 @@ Obsah is a wrapper around Ansible playbooks. They are exposed as a command line 
 from __future__ import print_function
 
 import argparse
-import errno
 import glob
 import json
 import os
@@ -76,10 +75,7 @@ class Playbook(object):
             try:
                 with open(self._metadata_path) as obsah_metadata:
                     data = yaml.safe_load(obsah_metadata)
-            # Python 3 has FileNotFoundError, Python 2 doesn't
-            except IOError as error:
-                if error.errno != errno.ENOENT:
-                    raise
+            except FileNotFoundError:
                 data = {}
 
             self._metadata = {
@@ -288,11 +284,8 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                           YAML/JSON, if filename prepend with @""")
 
     subparsers = parser.add_subparsers(dest='action', metavar='action',
+                                       required=True,
                                        help="""which action to execute""")
-    # Setting `required` outside of #add_subparser() is needed because
-    # python2's #add_subparser() won't accept `required` as a field (even
-    # though it's in the docs).
-    subparsers.required = True
 
     for playbook in playbooks:
         subparser = subparsers.add_parser(playbook.name, parents=[parent_parser],
