@@ -1,7 +1,7 @@
 Developing Obsah
 ===============
 
-Obsah is written with support for Python 3.8 or higher. To provide the command line we rely on the Python built in `argparse`_ and `Ansible`_. For testing we use `Pytest`_ but this is wrapped up with `Tox`_ to test multiple environments.
+Obsah is written with support for Python 3.9 or higher. To provide the command line we rely on the Python built in `argparse`_ and `Ansible`_. For testing we use `Pytest`_ but this is wrapped up with `Tox`_ to test multiple environments.
 
 .. _argparse: https://docs.python.org/3/library/argparse.html
 .. _Ansible: https://www.ansible.com/
