@@ -24,25 +24,8 @@ except ImportError:
     argcomplete = None
 
 
-
-
 # Need for PlaybookCLI to set the verbosity
 display = None  # pylint: disable=C0103
-
-
-def remove_prefix(text, prefix):
-    """
-    Remove the prefix from the text if present
-
-    >>> remove_prefix('changelog_message', 'changelog_')
-    'message'
-
-    >>> remove_prefix('message', 'changelog')
-    'message'
-    """
-    if text.startswith(prefix):
-        return text[len(prefix):]
-    return text
 
 
 Variable = namedtuple('Variable', ['name', 'parameter', 'help_text', 'action'])
@@ -137,7 +120,7 @@ class Playbook(object):
             try:
                 parameter = options['parameter']
             except KeyError:
-                parameter = '--{}'.format(remove_prefix(name, namespace).replace('_', '-'))
+                parameter = '--{}'.format(name.removeprefix(namespace).replace('_', '-'))
 
             yield Variable(name, parameter, options.get('help'), options.get('action'))
 

@@ -45,7 +45,7 @@ setup(
     author='The Foreman Project',
     author_email='foreman-dev@googlegroups.com',
     zip_safe=False,
-    python_requires=">=3.8, <4",
+    python_requires=">=3.9, <4",
 
     classifiers=[
         'Development Status :: 3 - Alpha',
@@ -53,7 +53,6 @@ setup(
         'Topic :: Software Development :: Build Tools',
         'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
