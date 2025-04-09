@@ -1,0 +1,19 @@
+help: >
+  Short description
+
+
+  Full text
+  on multiple lines
+
+  with an explicit newline
+variables:
+  input_file:
+    type: File
+  output_file:
+    type: AbsolutePath
+  some_flag:
+    type: Boolean
+  hostname:
+    type: FQDN
+  url:
+    type: HTTPUrl
