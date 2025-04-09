@@ -17,3 +17,7 @@ variables:
     type: FQDN
   url:
     type: HTTPUrl
+  logging:
+    choices:
+      - journal
+      - file
