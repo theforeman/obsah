@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
 
 """
@@ -17,6 +17,8 @@ from importlib import resources
 
 import yaml
 
+from . import data_types
+
 try:
     import argcomplete
 except ImportError:
@@ -27,7 +29,7 @@ except ImportError:
 display = None  # pylint: disable=C0103
 
 
-Variable = namedtuple('Variable', ['name', 'parameter', 'help_text', 'action'])
+Variable = namedtuple('Variable', ['name', 'parameter', 'help_text', 'action', 'type'])
 
 
 @total_ordering
@@ -121,7 +123,7 @@ class Playbook(object):
             except KeyError:
                 parameter = '--{}'.format(name.removeprefix(namespace).replace('_', '-'))
 
-            yield Variable(name, parameter, options.get('help'), options.get('action'))
+            yield Variable(name, parameter, options.get('help'), options.get('action'), options.get('type'))
 
     @property
     def __doc__(self):
@@ -283,6 +285,7 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                                           help=playbook.help_text,
                                           description=playbook.description,
                                           formatter_class=argparse.RawDescriptionHelpFormatter)
+        data_types.register_types(subparser)
         subparser.set_defaults(playbook=playbook)
 
         if playbook.takes_target_parameter:
@@ -295,6 +298,8 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
         for variable in playbook.playbook_variables:
             argument_args = {'help': variable.help_text, 'action': variable.action,
                              'default': argparse.SUPPRESS}
+            if variable.type is not None:
+                argument_args['type'] = variable.type
             if variable.parameter.startswith('--'):
                 argument_args['dest'] = variable.name
             subparser.add_argument(variable.parameter, **argument_args)
