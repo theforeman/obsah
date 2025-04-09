@@ -30,7 +30,7 @@ except ImportError:
 display = None  # pylint: disable=C0103
 
 
-Variable = namedtuple('Variable', ['name', 'parameter', 'help_text', 'action', 'type'])
+Variable = namedtuple('Variable', ['name', 'parameter', 'help_text', 'action', 'type', 'choices'])
 
 
 @total_ordering
@@ -124,7 +124,7 @@ class Playbook(object):
             except KeyError:
                 parameter = '--{}'.format(name.removeprefix(namespace).replace('_', '-'))
 
-            yield Variable(name, parameter, options.get('help'), options.get('action'), options.get('type'))
+            yield Variable(name, parameter, options.get('help'), options.get('action'), options.get('type'), options.get('choices'))
 
     @property
     def __doc__(self):
@@ -292,6 +292,8 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                              'default': argparse.SUPPRESS}
             if variable.type is not None:
                 argument_args['type'] = variable.type
+            if variable.choices is not None:
+                argument_args['choices'] = variable.choices
             if variable.parameter.startswith('--'):
                 argument_args['dest'] = variable.name
             subparser.add_argument(variable.parameter, **argument_args)
