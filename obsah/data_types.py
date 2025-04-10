@@ -3,17 +3,21 @@ obsah data types to be used to validate user input
 """
 
 import argparse
-import inspect
 import os
 import pathlib
 import re
-import sys
+
+REGISTRY: list[type['BaseType']] = []
 
 
 class BaseType:
     """
     Base type class
     """
+
+    def __init_subclass__(cls, **kwargs):
+        if not cls.__name__.endswith('Type'):
+            REGISTRY.append(cls)
 
     @property
     def name(self):
@@ -30,6 +34,7 @@ class BaseType:
         validate user input
         """
         return string
+
 
 class Boolean(BaseType):
     """
@@ -104,7 +109,6 @@ def register_types(parser: argparse.ArgumentParser):
     """
     register all known data types as types usable by argparse
     """
-    types = inspect.getmembers(sys.modules[__name__], inspect.isclass)
-    for t in types:
-        tobj = t[1]()
+    for t in REGISTRY:
+        tobj = t()
         parser.register('type', tobj.name, tobj.validate)
