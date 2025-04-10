@@ -66,6 +66,7 @@ class Playbook(object):
             self._metadata = {
                 'help': data.get('help'),
                 'variables': sorted(self._parse_parameters(data.get('variables', {}))),
+                'constraints': data.get('constraints', {}),
             }
 
         return self._metadata
@@ -145,6 +146,25 @@ class Playbook(object):
         if hasattr(other, 'name'):
             return self.name.__lt__(other.name)
         return NotImplemented
+
+    def validate_constraints(self, args):
+        errors = []
+        for constraint in self.metadata['constraints'].get('required_together', []):
+            present_args = [arg in args for arg in constraint]
+            if not all(present_args) and any(present_args):
+                errors.append(f"{constraint} are required together")
+        for constraint in self.metadata['constraints'].get('required_one_of', []):
+            present_args = [arg in args for arg in constraint]
+            if not any(present_args):
+                errors.append(f"one of {constraint} is required")
+        for constraint in self.metadata['constraints'].get('mutually_exclusive', []):
+            present_args = [True for arg in constraint if arg in args]
+            if len(present_args) > 1:
+                errors.append(f"{constraint} are mutually exclusive")
+        if errors:
+            for err in errors:
+                print(err, file=sys.stderr)
+            sys.exit(1)
 
 
 class ApplicationConfig(object):
@@ -347,6 +367,8 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
     parser = obsah_argument_parser(application_config, targets=targets)
 
     args = parser.parse_args(cliargs)
+
+    args.playbook.validate_constraints(args)
 
     if args.playbook.takes_target_parameter and not os.path.exists(inventory_path):
         print("Could not find your inventory at {}".format(inventory_path))

@@ -21,3 +21,10 @@ variables:
     choices:
       - journal
       - file
+constraints:
+  required_together:
+    - [input_file, output_file]
+  required_one_of:
+    - [hostname, url]
+  mutually_exclusive:
+    - [hostname, url]
