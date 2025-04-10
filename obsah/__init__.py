@@ -18,6 +18,7 @@ from importlib import resources
 import yaml
 
 from . import data_types
+from .constraints import validate_constraints
 
 try:
     import argcomplete
@@ -79,6 +80,7 @@ class Playbook(object):
             self._metadata = {
                 'help': data.get('help'),
                 'variables': sorted(self._parse_parameters(data.get('variables', {}))),
+                'constraints': data.get('constraints', {}),
             }
 
         return self._metadata
@@ -369,6 +371,9 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
     parser = obsah_argument_parser(application_config, targets=targets)
 
     args = parser.parse_args(cliargs)
+
+    if errors := validate_constraints(args.playbook.metadata, args):
+        parser.exit(1, "\n".join(errors))
 
     if args.playbook.takes_target_parameter and not os.path.exists(inventory_path):
         parser.exit(1, "Could not find your inventory at {}".format(inventory_path))
