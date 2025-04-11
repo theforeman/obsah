@@ -45,6 +45,19 @@ class Playbook(object):
         self._metadata_path = os.path.join(directory, self.application_config.metadata_name())
         self._metadata = None
 
+
+    def _load_metadata_file(self, path):
+        """
+        Read JSON from a file
+        """
+        try:
+            with open(path) as obsah_metadata:
+                data = yaml.safe_load(obsah_metadata)
+        except FileNotFoundError:
+            data = {}
+        return data
+
+
     @property
     def metadata(self):
         """
@@ -56,11 +69,12 @@ class Playbook(object):
         This data is lazily loaded and cached.
         """
         if not self._metadata:
-            try:
-                with open(self._metadata_path) as obsah_metadata:
-                    data = yaml.safe_load(obsah_metadata)
-            except FileNotFoundError:
-                data = {}
+            data = self._load_metadata_file(self._metadata_path)
+            for include in data.get('include', []):
+                include_path = os.path.join(self.application_config.playbooks_path(), include, self.application_config.metadata_name())
+                include_data = self._load_metadata_file(include_path)
+                data['variables'] = data.get('variables', {}) | include_data.get('variables', {})
+                data['constraints'] = data.get('constraints', {}) | include_data.get('constraints', {})
 
             self._metadata = {
                 'help': data.get('help'),
