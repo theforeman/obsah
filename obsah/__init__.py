@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
 
 """
@@ -18,6 +18,8 @@ from importlib import resources
 
 import yaml
 
+from . import data_types
+
 try:
     import argcomplete
 except ImportError:
@@ -28,7 +30,7 @@ except ImportError:
 display = None  # pylint: disable=C0103
 
 
-Variable = namedtuple('Variable', ['name', 'parameter', 'help_text', 'action'])
+Variable = namedtuple('Variable', ['name', 'parameter', 'help_text', 'action', 'type', 'choices'])
 
 
 @total_ordering
@@ -44,6 +46,19 @@ class Playbook(object):
         self._metadata_path = os.path.join(directory, self.application_config.metadata_name())
         self._metadata = None
 
+
+    def _load_metadata_file(self, path):
+        """
+        Read JSON from a file
+        """
+        try:
+            with open(path) as obsah_metadata:
+                data = yaml.safe_load(obsah_metadata)
+        except FileNotFoundError:
+            data = {}
+        return data
+
+
     @property
     def metadata(self):
         """
@@ -55,15 +70,17 @@ class Playbook(object):
         This data is lazily loaded and cached.
         """
         if not self._metadata:
-            try:
-                with open(self._metadata_path) as obsah_metadata:
-                    data = yaml.safe_load(obsah_metadata)
-            except FileNotFoundError:
-                data = {}
+            data = self._load_metadata_file(self._metadata_path)
+            for include in data.get('include', []):
+                include_path = os.path.join(self.application_config.playbooks_path(), include, self.application_config.metadata_name())
+                include_data = self._load_metadata_file(include_path)
+                data['variables'] = data.get('variables', {}) | include_data.get('variables', {})
+                data['constraints'] = data.get('constraints', {}) | include_data.get('constraints', {})
 
             self._metadata = {
                 'help': data.get('help'),
                 'variables': sorted(self._parse_parameters(data.get('variables', {}))),
+                'constraints': data.get('constraints', {}),
             }
 
         return self._metadata
@@ -122,7 +139,7 @@ class Playbook(object):
             except KeyError:
                 parameter = '--{}'.format(name.removeprefix(namespace).replace('_', '-'))
 
-            yield Variable(name, parameter, options.get('help'), options.get('action'))
+            yield Variable(name, parameter, options.get('help'), options.get('action'), options.get('type'), options.get('choices'))
 
     @property
     def __doc__(self):
@@ -143,6 +160,25 @@ class Playbook(object):
         if hasattr(other, 'name'):
             return self.name.__lt__(other.name)
         return NotImplemented
+
+    def validate_constraints(self, args):
+        errors = []
+        for constraint in self.metadata['constraints'].get('required_together', []):
+            present_args = [arg in args for arg in constraint]
+            if not all(present_args) and any(present_args):
+                errors.append(f"{constraint} are required together")
+        for constraint in self.metadata['constraints'].get('required_one_of', []):
+            present_args = [arg in args for arg in constraint]
+            if not any(present_args):
+                errors.append(f"one of {constraint} is required")
+        for constraint in self.metadata['constraints'].get('mutually_exclusive', []):
+            present_args = [True for arg in constraint if arg in args]
+            if len(present_args) > 1:
+                errors.append(f"{constraint} are mutually exclusive")
+        if errors:
+            for err in errors:
+                print(err, file=sys.stderr)
+            sys.exit(1)
 
 
 class ApplicationConfig(object):
@@ -275,6 +311,7 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                                           help=playbook.help_text,
                                           description=playbook.description,
                                           formatter_class=argparse.RawDescriptionHelpFormatter)
+        data_types.register_types(subparser)
         subparser.set_defaults(playbook=playbook)
 
         if playbook.takes_target_parameter:
@@ -287,6 +324,10 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
         for variable in playbook.playbook_variables:
             argument_args = {'help': variable.help_text, 'action': variable.action,
                              'default': argparse.SUPPRESS}
+            if variable.type is not None:
+                argument_args['type'] = variable.type
+            if variable.choices is not None:
+                argument_args['choices'] = variable.choices
             if variable.parameter.startswith('--'):
                 argument_args['dest'] = variable.name
             subparser.add_argument(variable.parameter, **argument_args)
@@ -340,6 +381,8 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
     parser = obsah_argument_parser(application_config, targets=targets)
 
     args = parser.parse_args(cliargs)
+
+    args.playbook.validate_constraints(args)
 
     if args.playbook.takes_target_parameter and not os.path.exists(inventory_path):
         print("Could not find your inventory at {}".format(inventory_path))
