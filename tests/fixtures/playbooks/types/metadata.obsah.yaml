@@ -21,3 +21,5 @@ variables:
     choices:
       - journal
       - file
+include:
+  - dummy
