@@ -220,6 +220,13 @@ class ApplicationConfig(object):
                       os.path.basename(playbook_path) != cls.metadata_name())
 
 
+class ObsahArgumentParser(argparse.ArgumentParser):
+    def exit(self, status=0, message=None):
+        if message is not None and not message.endswith("\n"):
+            message += "\n"
+        super().exit(status, message)
+
+
 def find_targets(inventory_path):
     """
     Find all targets in the given inventory
@@ -246,7 +253,7 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
     if targets is None:
         targets = []
 
-    parser = argparse.ArgumentParser(application_config.name())
+    parser = ObsahArgumentParser(application_config.name())
 
     parser.obsah_arguments = []
 
