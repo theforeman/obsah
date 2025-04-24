@@ -11,7 +11,6 @@ import argparse
 import glob
 import json
 import os
-import sys
 from collections import namedtuple
 from functools import total_ordering
 from importlib import resources
@@ -341,8 +340,7 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
     args = parser.parse_args(cliargs)
 
     if args.playbook.takes_target_parameter and not os.path.exists(inventory_path):
-        print("Could not find your inventory at {}".format(inventory_path))
-        sys.exit(1)
+        parser.exit(1, "Could not find your inventory at {}".format(inventory_path))
 
     from ansible.cli.playbook import PlaybookCLI # pylint: disable=all
 
@@ -355,7 +353,7 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
     cli = PlaybookCLI(ansible_playbook)
     cli.parse()
     exit_code = cli.run()
-    sys.exit(exit_code)
+    parser.exit(exit_code)
 
 
 if __name__ == '__main__':
