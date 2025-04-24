@@ -178,7 +178,6 @@ class ApplicationConfig(object):
         """
         return 'metadata.obsah.yaml'
 
-
     @staticmethod
     def data_path():
         """
@@ -186,8 +185,8 @@ class ApplicationConfig(object):
         """
         path = os.environ.get('OBSAH_DATA')
         if path is None:
-            # TODO: deprecated in 3.11
-            path = resources.path(__name__, 'data')
+            with resources.path(__name__, 'data') as fspath:
+                path = fspath.as_posix()
 
         return path
 
