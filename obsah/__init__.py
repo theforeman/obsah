@@ -226,6 +226,9 @@ class ObsahArgumentParser(argparse.ArgumentParser):
             message += "\n"
         super().exit(status, message)
 
+    def format_usage(self):
+        return super().format_help()
+
 
 def find_targets(inventory_path):
     """
