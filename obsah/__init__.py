@@ -237,6 +237,13 @@ class ApplicationConfig(object):
         return sorted(Playbook(playbook_path, cls) for playbook_path in paths if
                       os.path.basename(playbook_path) != cls.metadata_name())
 
+    @staticmethod
+    def allow_extra_vars():
+        """
+        Whether to allow --extra-vars parameter to be automatically added
+        """
+        return True
+
 
 class ObsahArgumentParser(argparse.ArgumentParser):
     def exit(self, status=0, message=None):
@@ -284,13 +291,14 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                                dest="verbose",
                                help="verbose output")
 
-    advanced = parent_parser.add_argument_group('advanced arguments')
-    advanced.add_argument('-e', '--extra-vars',
-                          dest="extra_vars",
-                          action="append",
-                          default=[],
-                          help="""set additional variables as key=value or
-                          YAML/JSON, if filename prepend with @""")
+    if application_config.allow_extra_vars():
+        advanced = parent_parser.add_argument_group('advanced arguments')
+        advanced.add_argument('-e', '--extra-vars',
+                              dest="extra_vars",
+                              action="append",
+                              default=[],
+                              help="""set additional variables as key=value or
+                              YAML/JSON, if filename prepend with @""")
 
     subparsers = parser.add_subparsers(dest='action', metavar='action',
                                        required=True,
@@ -339,7 +347,7 @@ def generate_ansible_args(inventory_path, args, obsah_arguments):
         ansible_args.extend(['--limit', limit])
     if args.verbose:
         ansible_args.append("-%s" % str("v" * args.verbose))
-    for extra_var in args.extra_vars:
+    for extra_var in getattr(args, 'extra_vars', []):
         ansible_args.extend(["-e", extra_var])
 
     variables = {arg: getattr(args, arg) for arg in obsah_arguments if hasattr(args, arg)}
