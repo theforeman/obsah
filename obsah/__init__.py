@@ -46,7 +46,6 @@ class Playbook(object):
         self._metadata_path = os.path.join(directory, self.application_config.metadata_name())
         self._metadata = None
 
-
     def _load_metadata_file(self, path):
         """
         Read JSON from a file
@@ -57,7 +56,6 @@ class Playbook(object):
         except FileNotFoundError:
             data = {}
         return data
-
 
     @property
     def metadata(self):
@@ -261,8 +259,8 @@ def find_targets(inventory_path):
     """
     targets = None
     if os.path.exists(inventory_path):
-        from ansible.inventory.manager import InventoryManager # pylint: disable=all
-        from ansible.parsing.dataloader import DataLoader # pylint: disable=all
+        from ansible.inventory.manager import InventoryManager  # pylint: disable=all
+        from ansible.parsing.dataloader import DataLoader  # pylint: disable=all
         ansible_loader = DataLoader()
         ansible_inventory = InventoryManager(loader=ansible_loader,
                                              sources=inventory_path)
@@ -368,7 +366,7 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
 
     # this needs to be global, as otherwise PlaybookCLI fails
     # to set the verbosity correctly
-    from ansible.utils.display import Display # pylint: disable=all
+    from ansible.utils.display import Display  # pylint: disable=all
     global display  # pylint: disable=C0103,W0603
     display = Display()
 
@@ -386,7 +384,7 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
     if args.playbook.takes_target_parameter and not os.path.exists(inventory_path):
         parser.exit(1, "Could not find your inventory at {}".format(inventory_path))
 
-    from ansible.cli.playbook import PlaybookCLI # pylint: disable=all
+    from ansible.cli.playbook import PlaybookCLI  # pylint: disable=all
 
     ansible_args = generate_ansible_args(inventory_path, args, parser.obsah_arguments)
     ansible_playbook = (["ansible-playbook"] + ansible_args)
