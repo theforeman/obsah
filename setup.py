@@ -73,7 +73,7 @@ setup(
     },
 
     package_data={
-        'obsah': find_package_data('obsah', 'data'),
+        'obsah': find_package_data('obsah', 'data') + ['py.typed'],
     },
 
     entry_points={
