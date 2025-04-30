@@ -246,6 +246,20 @@ class ApplicationConfig(object):
             return value.lower() in ['true', '1']
         return True
 
+    @staticmethod
+    def persist_params():
+        """
+        Whether or not to persist parameters
+        """
+        return False
+
+    @staticmethod
+    def persist_path():
+        """
+        Where to persist parameters to
+        """
+        return '/tmp/obsah.yml'
+
 
 class ObsahArgumentParser(argparse.ArgumentParser):
     def exit(self, status=0, message=None):
@@ -313,6 +327,14 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                                           formatter_class=argparse.RawDescriptionHelpFormatter)
         data_types.register_types(subparser)
         subparser.set_defaults(playbook=playbook)
+        if application_config.persist_params():
+            try:
+                with open(application_config.persist_path()) as persist_file:
+                    persist_params = yaml.safe_load(persist_file)
+                if persist_params:
+                    subparser.set_defaults(**persist_params)
+            except FileNotFoundError:
+                pass
 
         if playbook.takes_target_parameter:
             subparser.add_argument('target',
@@ -387,6 +409,13 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
 
     if args.playbook.takes_target_parameter and not os.path.exists(inventory_path):
         parser.exit(1, "Could not find your inventory at {}".format(inventory_path))
+
+    if application_config.persist_params():
+        with open(application_config.persist_path(), 'w') as persist_file:
+            persist_params = dict(vars(args))
+            for item in ['playbook', 'action', 'verbose', 'extra_vars']:
+                persist_params.pop(item, None)
+            yaml.safe_dump(persist_params, persist_file)
 
     from ansible.cli.playbook import PlaybookCLI  # pylint: disable=all
 
