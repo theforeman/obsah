@@ -172,7 +172,7 @@ class ApplicationConfig(object):
         """
         Return the name as shown to the user in the ArgumentParser
         """
-        return 'obsah'
+        return os.environ.get('OBSAH_NAME', 'obsah')
 
     @staticmethod
     def target_name():
