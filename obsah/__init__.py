@@ -242,6 +242,8 @@ class ApplicationConfig(object):
         """
         Whether to allow --extra-vars parameter to be automatically added
         """
+        if value := os.environ.get('OBSAH_ALLOW_EXTRA_VARS') is not None:
+            return value.lower() in ['true', '1']
         return True
 
 
