@@ -12,10 +12,16 @@
 
 ## Release
 
-First, install dependencies:
+First, install dependencies, either from Fedora:
 
 ```
-pip install -r requirements-dev.txt
+$ sudo dnf install bumpversion
+```
+
+Or PyPI:
+
+```
+$ pip install bump2version
 ```
 
 Now bump the version based on the type of update (e.g. major, minor, patch):
