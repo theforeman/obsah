@@ -8,3 +8,20 @@
 
 - `python` 3
 - `ansible`
+
+
+## Release
+
+First, install dependencies:
+
+```
+pip install -r requirements-dev.txt
+```
+
+Now bump the version based on the type of update (e.g. major, minor, patch):
+
+```
+bump2version <type>
+```
+
+Finally, open a pull request with release.
