@@ -12,8 +12,10 @@ import glob
 import json
 import os
 from collections import namedtuple
+from collections.abc import Iterable, Mapping
 from functools import total_ordering
 from importlib import resources
+from typing import Any, Optional
 
 import yaml
 
@@ -46,7 +48,6 @@ class Playbook(object):
         self._metadata_path = os.path.join(directory, self.application_config.metadata_name())
         self._metadata = None
 
-
     def _load_metadata_file(self, path):
         """
         Read JSON from a file
@@ -58,9 +59,8 @@ class Playbook(object):
             data = {}
         return data
 
-
     @property
-    def metadata(self):
+    def metadata(self) -> Mapping[str, Any]:
         """
         Read metadata about the playbook
 
@@ -86,7 +86,7 @@ class Playbook(object):
         return self._metadata
 
     @property
-    def takes_target_parameter(self):
+    def takes_target_parameter(self) -> bool:
         """
         Whether this playbook takes a target argument.
 
@@ -100,7 +100,7 @@ class Playbook(object):
         return any(len(target_names.intersection(play.get('hosts', []))) > 0 for play in plays)
 
     @property
-    def playbook_variables(self):
+    def playbook_variables(self) -> Optional[Iterable[Variable]]:
         """
         The playbook variables that should be exposed to the user
 
@@ -109,20 +109,20 @@ class Playbook(object):
         return self.metadata['variables']
 
     @property
-    def help_text(self):
+    def help_text(self) -> Optional[str]:
         """
         The help text if available. This is the first line from the help in the metadata.
         """
         return self.metadata['help'].split('\n', 1)[0] if self.metadata['help'] else None
 
     @property
-    def description(self):
+    def description(self) -> Optional[str]:
         """
         The full help text if available. This is extracted from the metadata.
         """
         return self.metadata['help']
 
-    def _parse_parameters(self, variables):
+    def _parse_parameters(self, variables: Mapping[str, Mapping[str, str]]) -> Iterable[Variable]:
         """
         Parse parameters from the metadata.
 
@@ -168,35 +168,35 @@ class ApplicationConfig(object):
     """
 
     @staticmethod
-    def name():
+    def name() -> str:
         """
         Return the name as shown to the user in the ArgumentParser
         """
         return os.environ.get('OBSAH_NAME', 'obsah')
 
     @staticmethod
-    def target_name():
+    def target_name() -> str:
         """
         Return the name of the target in the playbook if the playbook takes a parameter.
         """
         return 'packages'
 
     @classmethod
-    def target_names(cls):
+    def target_names(cls) -> Iterable[str]:
         """
         Return the names of the targets in the playbook if the playbook takes parameters.
         """
         return [cls.target_name()]
 
     @staticmethod
-    def metadata_name():
+    def metadata_name() -> str:
         """
         Return the name of the metadata file.
         """
         return 'metadata.obsah.yaml'
 
     @staticmethod
-    def data_path():
+    def data_path() -> str:
         """
         Return the data path. Houses playbooks and configs.
         """
@@ -208,28 +208,28 @@ class ApplicationConfig(object):
         return path
 
     @staticmethod
-    def inventory_path():
+    def inventory_path() -> str:
         """
         Return the inventory path
         """
         return os.environ.get('OBSAH_INVENTORY', os.path.join(os.getcwd(), 'package_manifest.yaml'))
 
     @classmethod
-    def playbooks_path(cls):
+    def playbooks_path(cls) -> str:
         """
         Return the default playbooks path
         """
         return os.environ.get('OBSAH_PLAYBOOKS', os.path.join(cls.data_path(), 'playbooks'))
 
     @classmethod
-    def ansible_config_path(cls):
+    def ansible_config_path(cls) -> str:
         """
         Return the ansible.cfg path
         """
         return os.environ.get('OBSAH_ANSIBLE_CFG', os.path.join(cls.data_path(), 'ansible.cfg'))
 
     @classmethod
-    def playbooks(cls):
+    def playbooks(cls) -> Iterable[Playbook]:
         """
         Return all playbooks in the playbook path.
         """
@@ -238,7 +238,7 @@ class ApplicationConfig(object):
                       os.path.basename(playbook_path) != cls.metadata_name())
 
     @staticmethod
-    def allow_extra_vars():
+    def allow_extra_vars() -> bool:
         """
         Whether to allow --extra-vars parameter to be automatically added
         """
@@ -257,14 +257,14 @@ class ObsahArgumentParser(argparse.ArgumentParser):
         return super().format_help()
 
 
-def find_targets(inventory_path):
+def find_targets(inventory_path) -> Optional[Iterable]:
     """
     Find all targets in the given inventory
     """
     targets = None
     if os.path.exists(inventory_path):
-        from ansible.inventory.manager import InventoryManager # pylint: disable=all
-        from ansible.parsing.dataloader import DataLoader # pylint: disable=all
+        from ansible.inventory.manager import InventoryManager  # pylint: disable=all
+        from ansible.parsing.dataloader import DataLoader  # pylint: disable=all
         ansible_loader = DataLoader()
         ansible_inventory = InventoryManager(loader=ansible_loader,
                                              sources=inventory_path)
@@ -370,7 +370,7 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
 
     # this needs to be global, as otherwise PlaybookCLI fails
     # to set the verbosity correctly
-    from ansible.utils.display import Display # pylint: disable=all
+    from ansible.utils.display import Display  # pylint: disable=all
     global display  # pylint: disable=C0103,W0603
     display = Display()
 
@@ -388,7 +388,7 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
     if args.playbook.takes_target_parameter and not os.path.exists(inventory_path):
         parser.exit(1, "Could not find your inventory at {}".format(inventory_path))
 
-    from ansible.cli.playbook import PlaybookCLI # pylint: disable=all
+    from ansible.cli.playbook import PlaybookCLI  # pylint: disable=all
 
     ansible_args = generate_ansible_args(inventory_path, args, parser.obsah_arguments)
     ansible_playbook = (["ansible-playbook"] + ansible_args)
