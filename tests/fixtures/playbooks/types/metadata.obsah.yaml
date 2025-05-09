@@ -21,6 +21,13 @@ variables:
     choices:
       - journal
       - file
+  database_mode:
+    help: Defaults to internal. Set to 'external' if using an external database.
+    choices:
+      - internal
+      - external
+  database_host:
+    help: Host of the PostgreSQL database.
 constraints:
   required_together:
     - [input_file, output_file]
@@ -28,5 +35,11 @@ constraints:
     - [hostname, url]
   mutually_exclusive:
     - [hostname, url]
+  required_if:
+    - ['database_mode', 'external', ['database_host']]
+  forbidden_if:
+    - ['database_mode', 'internal', ['database_host']]
 include:
   - dummy
+reset:
+  - ['database_mode', ['database_host']]
