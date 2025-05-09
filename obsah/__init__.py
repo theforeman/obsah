@@ -81,6 +81,7 @@ class Playbook(object):
                 'help': data.get('help'),
                 'variables': sorted(self._parse_parameters(data.get('variables', {}))),
                 'constraints': data.get('constraints', {}),
+                'reset': data.get('reset', [])
             }
 
         return self._metadata
@@ -381,6 +382,21 @@ def generate_ansible_args(inventory_path, args, obsah_arguments):
     return ansible_args
 
 
+def reset_args(application_config: ApplicationConfig, metadata: dict, args: argparse.Namespace):
+    try:
+        with open(application_config.persist_path()) as persist_file:
+            persist_params = yaml.safe_load(persist_file)
+        if persist_params:
+            for (reset_key, reset_values) in metadata['reset']:
+                if reset_key in persist_params and persist_params.get(reset_key) != getattr(args, reset_key):
+                    for arg in reset_values:
+                        if arg in persist_params and persist_params[arg] == getattr(args, arg):
+                            delattr(args, arg)
+    except FileNotFoundError:
+        pass
+    return args
+
+
 def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable=R0914
     """
     Main command
@@ -403,6 +419,9 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
     parser = obsah_argument_parser(application_config, targets=targets)
 
     args = parser.parse_args(cliargs)
+
+    if application_config.persist_params():
+        args = reset_args(application_config, args.playbook.metadata, args)
 
     if errors := validate_constraints(args.playbook.metadata, args):
         parser.exit(1, "\n".join(errors))
