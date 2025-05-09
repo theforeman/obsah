@@ -81,6 +81,7 @@ class Playbook(object):
                 'help': data.get('help'),
                 'variables': sorted(self._parse_parameters(data.get('variables', {}))),
                 'constraints': data.get('constraints', {}),
+                'reset': data.get('reset', [])
             }
 
         return self._metadata
@@ -246,6 +247,20 @@ class ApplicationConfig(object):
             return value.lower() in ['true', '1']
         return True
 
+    @staticmethod
+    def persist_params():
+        """
+        Whether or not to persist parameters
+        """
+        return False
+
+    @staticmethod
+    def persist_path():
+        """
+        Where to persist parameters to
+        """
+        return '/tmp/obsah.yml'
+
 
 class ObsahArgumentParser(argparse.ArgumentParser):
     def exit(self, status=0, message=None):
@@ -313,6 +328,14 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                                           formatter_class=argparse.RawDescriptionHelpFormatter)
         data_types.register_types(subparser)
         subparser.set_defaults(playbook=playbook)
+        if application_config.persist_params():
+            try:
+                with open(application_config.persist_path()) as persist_file:
+                    persist_params = yaml.safe_load(persist_file)
+                if persist_params:
+                    subparser.set_defaults(**persist_params)
+            except FileNotFoundError:
+                pass
 
         if playbook.takes_target_parameter:
             subparser.add_argument('target',
@@ -359,6 +382,21 @@ def generate_ansible_args(inventory_path, args, obsah_arguments):
     return ansible_args
 
 
+def reset_args(application_config: ApplicationConfig, metadata: dict, args: argparse.Namespace):
+    try:
+        with open(application_config.persist_path()) as persist_file:
+            persist_params = yaml.safe_load(persist_file)
+        if persist_params:
+            for (reset_key, reset_values) in metadata['reset']:
+                if reset_key in persist_params and persist_params.get(reset_key) != getattr(args, reset_key):
+                    for arg in reset_values:
+                        if arg in persist_params and persist_params[arg] == getattr(args, arg):
+                            delattr(args, arg)
+    except FileNotFoundError:
+        pass
+    return args
+
+
 def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable=R0914
     """
     Main command
@@ -382,11 +420,21 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
 
     args = parser.parse_args(cliargs)
 
+    if application_config.persist_params():
+        args = reset_args(application_config, args.playbook.metadata, args)
+
     if errors := validate_constraints(args.playbook.metadata, args):
         parser.exit(1, "\n".join(errors))
 
     if args.playbook.takes_target_parameter and not os.path.exists(inventory_path):
         parser.exit(1, "Could not find your inventory at {}".format(inventory_path))
+
+    if application_config.persist_params():
+        with open(application_config.persist_path(), 'w') as persist_file:
+            persist_params = dict(vars(args))
+            for item in ['playbook', 'action', 'verbose', 'extra_vars']:
+                persist_params.pop(item, None)
+            yaml.safe_dump(persist_params, persist_file)
 
     from ansible.cli.playbook import PlaybookCLI # pylint: disable=all
 
