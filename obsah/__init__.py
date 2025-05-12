@@ -356,6 +356,10 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
             subparser.add_argument(variable.parameter, **argument_args)
             parser.obsah_arguments.append(variable.name)
 
+            if application_config.persist_params() and variable.parameter.startswith('--'):
+                reset_param = variable.parameter.replace('--', '--reset-')
+                subparser.add_argument(reset_param, help=f'Reset {variable.name}', action='append_const', dest='obsah_reset', const=variable.name)
+
     if argcomplete:
         argcomplete.autocomplete(parser)
 
@@ -392,6 +396,9 @@ def reset_args(application_config: ApplicationConfig, metadata: dict, args: argp
                     for arg in reset_values:
                         if arg in persist_params and persist_params[arg] == getattr(args, arg):
                             delattr(args, arg)
+            if args.obsah_reset:
+                for reset_arg in args.obsah_reset:
+                    delattr(args, reset_arg)
     except FileNotFoundError:
         pass
     return args
@@ -432,7 +439,7 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
     if application_config.persist_params():
         with open(application_config.persist_path(), 'w') as persist_file:
             persist_params = dict(vars(args))
-            for item in ['playbook', 'action', 'verbose', 'extra_vars']:
+            for item in ['playbook', 'action', 'verbose', 'extra_vars', 'obsah_reset']:
                 persist_params.pop(item, None)
             yaml.safe_dump(persist_params, persist_file)
 
