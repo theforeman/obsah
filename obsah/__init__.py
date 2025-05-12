@@ -301,12 +301,14 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
     parser = ObsahArgumentParser(application_config.name())
 
     parser.obsah_arguments = []
+    parser.obsah_dont_persist = {'playbook'}
 
     parent_parser = argparse.ArgumentParser(add_help=False)
     parent_parser.add_argument("-v", "--verbose",
                                action="count",
                                dest="verbose",
                                help="verbose output")
+    parser.obsah_dont_persist.add('verbose')
 
     if application_config.allow_extra_vars():
         advanced = parent_parser.add_argument_group('advanced arguments')
@@ -316,10 +318,12 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                               default=[],
                               help="""set additional variables as key=value or
                               YAML/JSON, if filename prepend with @""")
+        parser.obsah_dont_persist.add('extra_vars')
 
     subparsers = parser.add_subparsers(dest='action', metavar='action',
                                        required=True,
                                        help="""which action to execute""")
+    parser.obsah_dont_persist.add('action')
 
     for playbook in playbooks:
         subparser = subparsers.add_parser(playbook.name, parents=[parent_parser],
@@ -343,6 +347,7 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                                    choices=targets,
                                    nargs='+',
                                    help="the target to execute the action against")
+            parser.obsah_dont_persist.add('target')
 
         for variable in playbook.playbook_variables:
             argument_args = {'help': variable.help_text, 'action': variable.action,
@@ -359,6 +364,10 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
             if application_config.persist_params() and variable.parameter.startswith('--'):
                 reset_param = variable.parameter.replace('--', '--reset-')
                 subparser.add_argument(reset_param, help=f'Reset {variable.name}', action='append_const', dest='obsah_reset', const=variable.name)
+            elif application_config.persist_params():
+                parser.obsah_dont_persist.add(variable.name)
+
+        parser.obsah_dont_persist.add('obsah_reset')
 
     if argcomplete:
         argcomplete.autocomplete(parser)
@@ -439,7 +448,7 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
     if application_config.persist_params():
         with open(application_config.persist_path(), 'w') as persist_file:
             persist_params = dict(vars(args))
-            for item in ['playbook', 'action', 'verbose', 'extra_vars', 'obsah_reset']:
+            for item in parser.obsah_dont_persist:
                 persist_params.pop(item, None)
             yaml.safe_dump(persist_params, persist_file)
 
