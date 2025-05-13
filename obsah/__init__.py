@@ -81,6 +81,7 @@ class Playbook(object):
                 'help': data.get('help'),
                 'variables': sorted(self._parse_parameters(data.get('variables', {}))),
                 'constraints': data.get('constraints', {}),
+                'reset': data.get('reset', [])
             }
 
         return self._metadata
@@ -246,6 +247,20 @@ class ApplicationConfig(object):
             return value.lower() in ['true', '1']
         return True
 
+    @staticmethod
+    def persist_params():
+        """
+        Whether or not to persist parameters
+        """
+        return False
+
+    @staticmethod
+    def persist_path():
+        """
+        Where to persist parameters to
+        """
+        return '/tmp/obsah.yml'
+
 
 class ObsahArgumentParser(argparse.ArgumentParser):
     def exit(self, status=0, message=None):
@@ -286,12 +301,14 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
     parser = ObsahArgumentParser(application_config.name())
 
     parser.obsah_arguments = []
+    parser.obsah_dont_persist = {'playbook'}
 
     parent_parser = argparse.ArgumentParser(add_help=False)
     parent_parser.add_argument("-v", "--verbose",
                                action="count",
                                dest="verbose",
                                help="verbose output")
+    parser.obsah_dont_persist.add('verbose')
 
     if application_config.allow_extra_vars():
         advanced = parent_parser.add_argument_group('advanced arguments')
@@ -301,10 +318,12 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                               default=[],
                               help="""set additional variables as key=value or
                               YAML/JSON, if filename prepend with @""")
+        parser.obsah_dont_persist.add('extra_vars')
 
     subparsers = parser.add_subparsers(dest='action', metavar='action',
                                        required=True,
                                        help="""which action to execute""")
+    parser.obsah_dont_persist.add('action')
 
     for playbook in playbooks:
         subparser = subparsers.add_parser(playbook.name, parents=[parent_parser],
@@ -313,6 +332,14 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                                           formatter_class=argparse.RawDescriptionHelpFormatter)
         data_types.register_types(subparser)
         subparser.set_defaults(playbook=playbook)
+        if application_config.persist_params():
+            try:
+                with open(application_config.persist_path()) as persist_file:
+                    persist_params = yaml.safe_load(persist_file)
+                if persist_params:
+                    subparser.set_defaults(**persist_params)
+            except FileNotFoundError:
+                pass
 
         if playbook.takes_target_parameter:
             subparser.add_argument('target',
@@ -320,6 +347,7 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                                    choices=targets,
                                    nargs='+',
                                    help="the target to execute the action against")
+            parser.obsah_dont_persist.add('target')
 
         for variable in playbook.playbook_variables:
             argument_args = {'help': variable.help_text, 'action': variable.action,
@@ -332,6 +360,14 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                 argument_args['dest'] = variable.name
             subparser.add_argument(variable.parameter, **argument_args)
             parser.obsah_arguments.append(variable.name)
+
+            if application_config.persist_params() and variable.parameter.startswith('--'):
+                reset_param = variable.parameter.replace('--', '--reset-')
+                subparser.add_argument(reset_param, help=f'Reset {variable.name}', action='append_const', dest='obsah_reset', const=variable.name)
+            elif application_config.persist_params():
+                parser.obsah_dont_persist.add(variable.name)
+
+        parser.obsah_dont_persist.add('obsah_reset')
 
     if argcomplete:
         argcomplete.autocomplete(parser)
@@ -359,6 +395,24 @@ def generate_ansible_args(inventory_path, args, obsah_arguments):
     return ansible_args
 
 
+def reset_args(application_config: ApplicationConfig, metadata: dict, args: argparse.Namespace):
+    try:
+        with open(application_config.persist_path()) as persist_file:
+            persist_params = yaml.safe_load(persist_file)
+        if persist_params:
+            for (reset_key, reset_values) in metadata['reset']:
+                if reset_key in persist_params and persist_params.get(reset_key) != getattr(args, reset_key):
+                    for arg in reset_values:
+                        if arg in persist_params and persist_params[arg] == getattr(args, arg):
+                            delattr(args, arg)
+            if args.obsah_reset:
+                for reset_arg in args.obsah_reset:
+                    delattr(args, reset_arg)
+    except FileNotFoundError:
+        pass
+    return args
+
+
 def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable=R0914
     """
     Main command
@@ -382,11 +436,21 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
 
     args = parser.parse_args(cliargs)
 
+    if application_config.persist_params():
+        args = reset_args(application_config, args.playbook.metadata, args)
+
     if errors := validate_constraints(args.playbook.metadata, args):
         parser.exit(1, "\n".join(errors))
 
     if args.playbook.takes_target_parameter and not os.path.exists(inventory_path):
         parser.exit(1, "Could not find your inventory at {}".format(inventory_path))
+
+    if application_config.persist_params():
+        with open(application_config.persist_path(), 'w') as persist_file:
+            persist_params = dict(vars(args))
+            for item in parser.obsah_dont_persist:
+                persist_params.pop(item, None)
+            yaml.safe_dump(persist_params, persist_file)
 
     from ansible.cli.playbook import PlaybookCLI  # pylint: disable=all
 
