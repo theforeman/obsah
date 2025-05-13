@@ -7,7 +7,7 @@ from obsah.constraints import validate_constraints
 
 @pytest.mark.parametrize("constraints,args,errors", [
     ([['a', 'b']], {'a': 1, 'b': 1}, []),
-    ([['a', 'b']], {'a': 1}, ["['a', 'b'] are required together"]),
+    ([['a', 'b']], {'a': 1}, ["['a', 'b'] are required together, missing: ['b']"]),
     ([['a', 'b']], {}, []),
 ])
 def test_required_together(constraints, args, errors):
