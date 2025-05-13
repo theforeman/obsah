@@ -22,7 +22,10 @@ def validate_constraints(metadata: dict, args: argparse.Namespace):
     for constraint in constraints.get('required_together', []):
         present_args = [arg in args for arg in constraint]
         if not all(present_args) and any(present_args):
-            errors.append(f"{[variable_to_parameter(x) for x in constraint]} are required together")
+            missing_args = [arg for arg in constraint if arg not in args]
+            errors.append(
+                f"{[variable_to_parameter(x) for x in constraint]} are required together, missing: {[variable_to_parameter(x) for x in missing_args]}"
+            )
     for constraint in constraints.get('required_one_of', []):
         present_args = [arg in args for arg in constraint]
         if not any(present_args):
