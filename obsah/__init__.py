@@ -414,7 +414,7 @@ def reset_args(application_config: ApplicationConfig, metadata: dict, args: argp
                     for arg in reset_values:
                         if arg in persist_params and persist_params[arg] == getattr(args, arg):
                             delattr(args, arg)
-            for reset_arg in getattr(args, 'obsah_reset', []):
+            for reset_arg in (getattr(args, 'obsah_reset', None) or []):
                 with contextlib.suppress(AttributeError):
                     delattr(args, reset_arg)
     return args
