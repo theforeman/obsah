@@ -398,6 +398,10 @@ def generate_ansible_args(inventory_path, args, obsah_arguments):
         ansible_args.extend(["-e", extra_var])
 
     variables = {arg: getattr(args, arg) for arg in obsah_arguments if hasattr(args, arg)}
+
+    # Expose the obsah_state_path variable to roles and playbooks
+    variables['obsah_state_path'] = args.playbook.application_config.state_path()
+
     if variables:
         ansible_args.extend(["-e", json.dumps(variables, sort_keys=True)])
 
