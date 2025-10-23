@@ -249,6 +249,15 @@ class ApplicationConfig(object):
         return True
 
     @staticmethod
+    def allow_inventory_auth() -> bool:
+        """
+        Whether to allow host authentication parameters such as password or private key
+        """
+        if (value := os.environ.get('OBSAH_ALLOW_INVENTORY_AUTH')) is not None:
+            return value.lower() in ['true', '1']
+        return False
+
+    @staticmethod
     def state_path():
         """
         Where to store the state
@@ -319,6 +328,18 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                                dest="verbose",
                                help="verbose output")
     parser.obsah_dont_persist.add('verbose')
+
+    if application_config.allow_inventory_auth():
+        parent_parser.add_argument("-k", "--ask-pass",
+                                   action="store_true",
+                                   dest="ask_pass",
+                                   help="ask for connection password")
+        parser.obsah_dont_persist.add('ask_pass')
+
+        parent_parser.add_argument("--private-key",
+                                   dest="private_key_file",
+                                   help="use this file to authenticate the connection")
+        parser.obsah_dont_persist.add('private_key_file')
 
     if application_config.allow_extra_vars():
         advanced = parent_parser.add_argument_group('advanced arguments')
@@ -394,6 +415,13 @@ def generate_ansible_args(inventory_path, args, obsah_arguments):
         ansible_args.extend(['--limit', limit])
     if args.verbose:
         ansible_args.append("-%s" % str("v" * args.verbose))
+
+    if getattr(args, 'ask_pass', False):
+        ansible_args.append('-k')
+
+    if getattr(args, 'private_key_file', None):
+        ansible_args.extend(['--private-key', args.private_key_file])
+
     for extra_var in getattr(args, 'extra_vars', []):
         ansible_args.extend(["-e", extra_var])
 
