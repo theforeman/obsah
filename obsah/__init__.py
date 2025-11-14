@@ -36,6 +36,28 @@ display = None  # pylint: disable=C0103
 Variable = namedtuple('Variable', ['name', 'parameter', 'help_text', 'action', 'type', 'choices'])
 
 
+class AppendUniqueAction(argparse.Action):
+    """
+    Custom argparse action that appends values but ensures uniqueness.
+    Similar to action='append', but duplicate values are ignored.
+    """
+    def __init__(self, option_strings, dest, default=None, **kwargs):
+        if default is None:
+            default = []
+        super().__init__(option_strings, dest, default=default, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        items = getattr(namespace, self.dest, None)
+        if items is None:
+            items = []
+        # Create a new list to avoid modifying the default
+        items = list(items)
+        # Only append if the value is not already in the list
+        if values not in items:
+            items.append(values)
+        setattr(namespace, self.dest, items)
+
+
 @total_ordering
 class Playbook(object):
     """
