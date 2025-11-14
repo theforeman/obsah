@@ -3,7 +3,7 @@ Tests for custom argparse actions
 """
 import argparse
 
-from obsah import AppendUniqueAction
+from obsah import AppendUniqueAction, RemoveAction
 
 
 class TestAppendUniqueAction:
@@ -35,3 +35,25 @@ class TestAppendUniqueAction:
         args = parser.parse_args(['--plugin', 'foo', '--plugin', 'bar', '--plugin', 'baz'])
 
         assert args.plugin == ['foo', 'bar', 'baz']
+
+
+class TestRemoveAction:
+    """Test the RemoveAction custom argparse action"""
+
+    def test_remove_single_item(self):
+        """Test that RemoveAction removes a single item from the default list"""
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--exclude', action=RemoveAction, default=['foo', 'bar', 'baz'])
+
+        args = parser.parse_args(['--exclude', 'bar'])
+
+        assert args.exclude == ['foo', 'baz']
+
+    def test_remove_nonexistent_item(self):
+        """Test that RemoveAction silently ignores items not in the list"""
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--exclude', action=RemoveAction, default=['foo', 'bar'])
+
+        args = parser.parse_args(['--exclude', 'nonexistent'])
+
+        assert args.exclude == ['foo', 'bar']

@@ -58,6 +58,29 @@ class AppendUniqueAction(argparse.Action):
         setattr(namespace, self.dest, items)
 
 
+class RemoveAction(argparse.Action):
+    """
+    Custom argparse action that removes values from a list.
+    Useful when you have a default list and want to selectively remove items.
+    """
+    def __init__(self, option_strings, dest, default=None, **kwargs):
+        if default is None:
+            default = []
+        super().__init__(option_strings, dest, default=default, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        items = getattr(namespace, self.dest, None)
+        if items is None:
+            items = []
+        else:
+            # Create a new list to avoid modifying the default
+            items = list(items)
+            # Remove the value if it exists in the list
+            if values in items:
+                items.remove(values)
+        setattr(namespace, self.dest, items)
+
+
 @total_ordering
 class Playbook(object):
     """
