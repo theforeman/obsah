@@ -33,7 +33,7 @@ except ImportError:
 display = None  # pylint: disable=C0103
 
 
-Variable = namedtuple('Variable', ['name', 'parameter', 'help_text', 'action', 'type', 'choices'])
+Variable = namedtuple('Variable', ['name', 'parameter', 'help_text', 'action', 'type', 'choices', 'dest'])
 
 
 class AppendUniqueAction(argparse.Action):
@@ -186,7 +186,7 @@ class Playbook(object):
             except KeyError:
                 parameter = '--{}'.format(name.removeprefix(namespace).replace('_', '-'))
 
-            yield Variable(name, parameter, options.get('help'), options.get('action'), options.get('type'), options.get('choices'))
+            yield Variable(name, parameter, options.get('help'), options.get('action'), options.get('type'), options.get('choices'), options.get('dest'))
 
     @property
     def __doc__(self):
@@ -437,7 +437,7 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
             if variable.choices is not None:
                 argument_args['choices'] = variable.choices
             if variable.parameter.startswith('--'):
-                argument_args['dest'] = variable.name
+                argument_args['dest'] = variable.dest or variable.name
             subparser.add_argument(variable.parameter, **argument_args)
             parser.obsah_arguments.append(variable.name)
 
