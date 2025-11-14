@@ -492,6 +492,12 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
             persist_params = dict(vars(args))
             for item in parser.obsah_dont_persist:
                 persist_params.pop(item, None)
+
+            # Deduplicate any list values to prevent duplicates on subsequent runs
+            for key, value in persist_params.items():
+                if isinstance(value, list):
+                    persist_params[key] = list(set(value))
+
             yaml.safe_dump(persist_params, persist_file)
 
     from ansible.cli.playbook import PlaybookCLI  # pylint: disable=all

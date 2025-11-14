@@ -136,3 +136,32 @@ def test_obsah_argument_parser_help(fixture_dir, parser):
     if sys.version_info >= (3, 10, 0):
         expected = expected.replace('optional arguments:', 'options:')
     assert expected == parser.format_help()
+
+
+def test_append_parameter_deduplication():
+    class MockParser:
+        def __init__(self):
+            self.obsah_dont_persist = {'playbook'}
+
+    args = argparse.Namespace()
+    args.mapped_list = ['foo', 'foo', 'bar', 'foo', 'baz']
+    args.playbook = 'dummy'
+
+    parser = MockParser()
+
+    persist_params = dict(vars(args))
+    for item in parser.obsah_dont_persist:
+        persist_params.pop(item, None)
+
+    for key, value in persist_params.items():
+        if isinstance(value, list):
+            persist_params[key] = list(set(value))
+
+    expected_values = ['foo', 'bar', 'baz']
+    actual_values = persist_params['mapped_list']
+
+    assert set(actual_values) == set(expected_values)
+    assert len(actual_values) == 3
+    assert 'foo' in actual_values
+    assert 'bar' in actual_values
+    assert 'baz' in actual_values
