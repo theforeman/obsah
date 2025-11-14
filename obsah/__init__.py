@@ -327,6 +327,12 @@ class ApplicationConfig(object):
 
 
 class ObsahArgumentParser(argparse.ArgumentParser):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Register custom actions so they can be used with string names
+        self.register('action', 'append_unique', AppendUniqueAction)
+        self.register('action', 'remove', RemoveAction)
+
     def exit(self, status=0, message=None):
         if message is not None and not message.endswith("\n"):
             message += "\n"

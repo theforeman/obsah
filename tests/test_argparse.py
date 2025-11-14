@@ -3,7 +3,7 @@ Tests for custom argparse actions
 """
 import argparse
 
-from obsah import AppendUniqueAction, RemoveAction
+from obsah import AppendUniqueAction, ObsahArgumentParser, RemoveAction
 
 
 class TestAppendUniqueAction:
@@ -57,3 +57,25 @@ class TestRemoveAction:
         args = parser.parse_args(['--exclude', 'nonexistent'])
 
         assert args.exclude == ['foo', 'bar']
+
+
+class TestActionStringNames:
+    """Test that custom actions can be used via string names"""
+
+    def test_append_unique_string_name(self):
+        """Test that 'append_unique' string action works"""
+        parser = ObsahArgumentParser()
+        parser.add_argument('--plugin', action='append_unique', default=[])
+
+        args = parser.parse_args(['--plugin', 'foo', '--plugin', 'foo', '--plugin', 'bar'])
+
+        assert args.plugin == ['foo', 'bar']
+
+    def test_remove_string_name(self):
+        """Test that 'remove' string action works"""
+        parser = ObsahArgumentParser()
+        parser.add_argument('--exclude', action='remove', default=['foo', 'bar', 'baz'])
+
+        args = parser.parse_args(['--exclude', 'bar'])
+
+        assert args.exclude == ['foo', 'baz']
