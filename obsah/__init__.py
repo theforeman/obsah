@@ -9,6 +9,7 @@ from __future__ import print_function
 
 import argparse
 import contextlib
+import datetime
 import glob
 import json
 import os
@@ -325,6 +326,12 @@ class ApplicationConfig(object):
         """
         return os.path.join(cls.state_path(), 'parameters.yaml')
 
+    @classmethod
+    def log_path(cls):
+        """
+        Return the log path.
+        """
+        return os.environ.get('ANSIBLE_LOG_PATH')
 
 class ObsahArgumentParser(argparse.ArgumentParser):
     def __init__(self, *args, **kwargs):
@@ -503,6 +510,15 @@ def reset_args(application_config: ApplicationConfig, metadata: dict, args: argp
     return args
 
 
+def rotate_log(log_path: str):
+    if log_path is not None and os.path.exists(log_path):
+        timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+        if f"{log_path}".endswith('.log'):
+            backup_path = f"{log_path}[:-4].{timestamp}.log"
+        else:
+            backup_path = f"{log_path}.{timestamp}"
+        os.rename(log_path, backup_path)
+
 def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable=R0914
     """
     Main command
@@ -511,6 +527,8 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
 
     if os.path.exists(cfg_path):
         os.environ["ANSIBLE_CONFIG"] = cfg_path
+
+    rotate_log(application_config.log_path())
 
     # this needs to be global, as otherwise PlaybookCLI fails
     # to set the verbosity correctly
