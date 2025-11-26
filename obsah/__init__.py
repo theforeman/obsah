@@ -513,7 +513,7 @@ def reset_args(application_config: ApplicationConfig, metadata: dict, args: argp
 def rotate_log(log_path: str):
     if log_path is not None and os.path.exists(log_path):
         timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-        if f"{log_path}".endswith('.log'):
+        if log_path.endswith('.log'):
             backup_path = f"{log_path}[:-4].{timestamp}.log"
         else:
             backup_path = f"{log_path}.{timestamp}"
