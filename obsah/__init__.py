@@ -514,7 +514,7 @@ def rotate_log(log_path: str):
     if log_path is not None and os.path.exists(log_path):
         timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
         if log_path.endswith('.log'):
-            backup_path = f"{log_path}[:-4].{timestamp}.log"
+            backup_path = f"{log_path[:-4]}.{timestamp}.log"
         else:
             backup_path = f"{log_path}.{timestamp}"
         os.rename(log_path, backup_path)

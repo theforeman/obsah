@@ -17,5 +17,11 @@ def test_rotate_log(tmp_path):
     assert log_file.exists()
 
     obsah.rotate_log(str(log_file))
-    assert len(os.listdir(dir)) == 1 # only the backup file should exist
+
+    log_dir_contents = list(dir.iterdir())
+
+    assert len(log_dir_contents) == 1 # only the rotated file should exist
+    assert log_dir_contents[0].suffix == '.log'
+    assert 'test.log' not in log_dir_contents[0].name
+    assert 'test.' in log_dir_contents[0].name
     assert not log_file.exists()
