@@ -28,6 +28,17 @@ variables:
       - external
   database_host:
     help: Host of the PostgreSQL database.
+  ssl_mode:
+    help: SSL mode for database connections.
+    choices:
+      - require
+      - disable
+      - prefer
+  advanced_features:
+    help: Enable advanced features.
+    choices:
+      - enabled
+      - disabled
 constraints:
   required_together:
     - [input_file, output_file]
@@ -39,6 +50,8 @@ constraints:
     - ['database_mode', 'external', ['database_host']]
   forbidden_if:
     - ['database_mode', 'internal', ['database_host']]
+    - ['database_mode', 'external', [['ssl_mode', 'disable']]]
+    - ['advanced_features', 'enabled', [['logging', 'journal'], ['ssl_mode', 'disable']]]
 include:
   - dummy
 reset:
