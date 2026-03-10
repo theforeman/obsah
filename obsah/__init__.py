@@ -128,7 +128,8 @@ class Playbook(object):
                 'help': data.get('help'),
                 'variables': sorted(self._parse_parameters(data.get('variables', {}))),
                 'constraints': data.get('constraints', {}),
-                'reset': data.get('reset', [])
+                'reset': data.get('reset', []),
+                'script': data.get('script'),
             }
 
         return self._metadata
@@ -562,6 +563,13 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
             for item in parser.obsah_dont_persist:
                 persist_params.pop(item, None)
             yaml.safe_dump(persist_params, persist_file)
+
+    # If the command specifies a script, run it directly instead of a playbook
+    script = args.playbook.metadata.get('script')
+    if script:
+        import subprocess, sys
+        script_path = os.path.join(application_config.data_path(), script)
+        parser.exit(subprocess.run([sys.executable, script_path]).returncode)
 
     from ansible.cli.playbook import PlaybookCLI  # pylint: disable=all
 
