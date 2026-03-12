@@ -5,11 +5,6 @@ import obsah
 
 
 @pytest.fixture
-def playbooks_path(fixture_dir):
-    return fixture_dir / 'playbooks'
-
-
-@pytest.fixture
 def application_config(playbooks_path):
     class MockApplicationConfig(obsah.ApplicationConfig):
         @staticmethod
