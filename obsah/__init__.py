@@ -422,6 +422,7 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
         data_types.register_types(subparser)
         subparser.set_defaults(playbook=playbook)
         if application_config.persist_params():
+            subparser.epilog = "Parameters marked as (persisted) can be reset by --reset-<parameter-name>."
             with contextlib.suppress(FileNotFoundError):
                 with open(application_config.persist_path()) as persist_file:
                     persist_params = yaml.safe_load(persist_file)
@@ -445,12 +446,17 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                 argument_args['choices'] = variable.choices
             if variable.parameter.startswith('--'):
                 argument_args['dest'] = variable.dest or variable.name
+            
+            if application_config.persist_params():
+                base_help = argument_args.get('help') or ''
+                argument_args['help'] = f"{base_help} (persisted)".strip()
+
             subparser.add_argument(variable.parameter, **argument_args)
             parser.obsah_arguments.append(variable.name)
 
             if application_config.persist_params() and variable.parameter.startswith('--'):
                 reset_param = variable.parameter.replace('--', '--reset-')
-                subparser.add_argument(reset_param, help=f'Reset {variable.name}', action='append_const', dest='obsah_reset', const=variable.name)
+                subparser.add_argument(reset_param, help=argparse.SUPPRESS, action='append_const', dest='obsah_reset', const=variable.name)
             elif application_config.persist_params():
                 # Don't persist positional arguments
                 parser.obsah_dont_persist.add(variable.name)
