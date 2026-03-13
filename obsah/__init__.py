@@ -18,6 +18,7 @@ from collections.abc import Iterable, Mapping
 from functools import total_ordering
 from importlib import resources
 from typing import Any, Optional
+import sys
 
 import yaml
 
@@ -128,7 +129,8 @@ class Playbook(object):
                 'help': data.get('help'),
                 'variables': sorted(self._parse_parameters(data.get('variables', {}))),
                 'constraints': data.get('constraints', {}),
-                'reset': data.get('reset', [])
+                'reset': data.get('reset', []),
+                'stdout_callback': data.get('stdout_callback'),
             }
 
         return self._metadata
@@ -530,6 +532,13 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
 
     rotate_log(application_config.log_path())
 
+    playbook_name = (cliargs or sys.argv)[1] if len(cliargs or sys.argv) > 1 else None
+    if playbook_name:
+        for pb in application_config.playbooks():
+            if pb.name == playbook_name and pb.metadata.get('stdout_callback'):
+                os.environ['ANSIBLE_STDOUT_CALLBACK'] = pb.metadata['stdout_callback']
+                break
+
     # this needs to be global, as otherwise PlaybookCLI fails
     # to set the verbosity correctly
     from ansible.utils.display import Display  # pylint: disable=all
@@ -569,7 +578,10 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
     ansible_playbook = (["ansible-playbook"] + ansible_args)
 
     if args.verbose:
-        print("ANSIBLE_CONFIG={}".format(os.environ["ANSIBLE_CONFIG"]), ' '.join(ansible_playbook))
+        env_vars = "ANSIBLE_CONFIG={}".format(os.environ["ANSIBLE_CONFIG"])
+        if 'ANSIBLE_STDOUT_CALLBACK' in os.environ:
+            env_vars += " ANSIBLE_STDOUT_CALLBACK={}".format(os.environ['ANSIBLE_STDOUT_CALLBACK'])
+        print(env_vars, ' '.join(ansible_playbook))
 
     cli = PlaybookCLI(ansible_playbook)
     cli.parse()
