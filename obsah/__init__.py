@@ -564,24 +564,23 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
                 persist_params.pop(item, None)
             yaml.safe_dump(persist_params, persist_file)
 
-    # If the command specifies a script, run it directly instead of a playbook
-    script = args.playbook.metadata.get('script')
-    if script:
+    if script := args.playbook.metadata.get('script'):
         import subprocess, sys
         script_path = os.path.join(application_config.data_path(), script)
-        parser.exit(subprocess.run([sys.executable, script_path]).returncode)
+        exit_code = subprocess.run([sys.executable, script_path]).returncode
+    else:
+        from ansible.cli.playbook import PlaybookCLI  # pylint: disable=all
 
-    from ansible.cli.playbook import PlaybookCLI  # pylint: disable=all
+        ansible_args = generate_ansible_args(inventory_path, args, parser.obsah_arguments)
+        ansible_playbook = (["ansible-playbook"] + ansible_args)
 
-    ansible_args = generate_ansible_args(inventory_path, args, parser.obsah_arguments)
-    ansible_playbook = (["ansible-playbook"] + ansible_args)
+        if args.verbose:
+            print("ANSIBLE_CONFIG={}".format(os.environ["ANSIBLE_CONFIG"]), ' '.join(ansible_playbook))
 
-    if args.verbose:
-        print("ANSIBLE_CONFIG={}".format(os.environ["ANSIBLE_CONFIG"]), ' '.join(ansible_playbook))
+        cli = PlaybookCLI(ansible_playbook)
+        cli.parse()
+        exit_code = cli.run()
 
-    cli = PlaybookCLI(ansible_playbook)
-    cli.parse()
-    exit_code = cli.run()
     parser.exit(exit_code)
 
 
