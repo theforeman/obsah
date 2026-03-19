@@ -34,7 +34,7 @@ except ImportError:
 display = None  # pylint: disable=C0103
 
 
-Variable = namedtuple('Variable', ['name', 'parameter', 'help_text', 'action', 'type', 'choices', 'dest'])
+Variable = namedtuple('Variable', ['name', 'parameter', 'help_text', 'action', 'type', 'choices', 'dest', 'persist'])
 
 
 class AppendUniqueAction(argparse.Action):
@@ -187,7 +187,7 @@ class Playbook(object):
             except KeyError:
                 parameter = '--{}'.format(name.removeprefix(namespace).replace('_', '-'))
 
-            yield Variable(name, parameter, options.get('help'), options.get('action'), options.get('type'), options.get('choices'), options.get('dest'))
+            yield Variable(name, parameter, options.get('help'), options.get('action'), options.get('type'), options.get('choices'), options.get('dest'), options.get('persist', True))
 
     @property
     def __doc__(self):
@@ -447,19 +447,20 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
             if variable.parameter.startswith('--'):
                 argument_args['dest'] = variable.dest or variable.name
             
-            if application_config.persist_params():
+            if application_config.persist_params() and variable.parameter.startswith('--') and variable.persist:
                 base_help = argument_args.get('help') or ''
                 argument_args['help'] = f"{base_help} (persisted)".strip()
 
             subparser.add_argument(variable.parameter, **argument_args)
             parser.obsah_arguments.append(variable.name)
 
-            if application_config.persist_params() and variable.parameter.startswith('--'):
-                reset_param = variable.parameter.replace('--', '--reset-')
-                subparser.add_argument(reset_param, help=argparse.SUPPRESS, action='append_const', dest='obsah_reset', const=variable.name)
-            elif application_config.persist_params():
-                # Don't persist positional arguments
-                parser.obsah_dont_persist.add(variable.name)
+            if application_config.persist_params():
+                if variable.parameter.startswith('--') and variable.persist:
+                    reset_param = variable.parameter.replace('--', '--reset-')
+                    subparser.add_argument(reset_param, help=argparse.SUPPRESS, action='append_const', dest='obsah_reset', const=variable.name)
+                else:
+                    # Don't persist positional arguments
+                    parser.obsah_dont_persist.add(variable.name)
 
         parser.obsah_dont_persist.add('obsah_reset')
 
