@@ -72,10 +72,10 @@ When we execute ``obsah dummy --help`` we see more show up:
 
 .. code-block:: none
 
-    usage: obsah dummy [-h] [-v] [-e EXTRA_VARS]
-                  [--automatic AUTOMATIC]
-                  [--explicit MAPPED]
-                  package [package ...]
+   usage: obsah dummy [-h] [-v] [-e EXTRA_VARS] [--automatic AUTOMATIC]
+                      [--explicit MAPPED] [--my-list MAPPED_LIST] [--store-false]
+                      [--store-list STORE_LIST] [--store-true]
+                      target [target ...]
 
    Short description
 
@@ -83,17 +83,23 @@ When we execute ``obsah dummy --help`` we see more show up:
    with an explicit newline
 
    positional arguments:
-     package               the package to build
+     target                the target to execute the action against
 
-   optional arguments:
+   options:
      -h, --help            show this help message and exit
      -v, --verbose         verbose output
      --automatic AUTOMATIC
                            Automatically determined parameter
      --explicit MAPPED     Explicitly specified parameter
+     --my-list MAPPED_LIST
+                           Repeatable action
+     --store-false         Action that stores false if passed
+     --store-list STORE_LIST
+                           Repeatable action
+     --store-true          Action that stores true if passed
 
    advanced arguments:
-     -e EXTRA_VARS, --extra-vars EXTRA_VARS
+     -e, --extra-vars EXTRA_VARS
                            set additional variables as key=value or YAML/JSON, if
                            filename prepend with @
 
@@ -112,7 +118,9 @@ Variables
 
 Variables is a mapping at the top level in the metadata.
 
-For every variable the key is the variable in Ansible. It also needs a ``help``. The most minimal variant for a ``changelog`` playbook:
+For every variable the key is the variable in Ansible. It also needs a ``help`` (`argparse help`_). The most minimal variant for a ``changelog`` playbook:
+
+.. _argparse help: https://docs.python.org/3/library/argparse.html#help
 
 .. code-block:: yaml
 
@@ -221,6 +229,255 @@ Storing lists can be done with the ``append`` action. It's exposed as a repeatab
 
 Calling ``obsah release --releaser first --releaser second`` will translate to ``ansible-playbook release -e '{"releasers": ["first", "second"]}'``.
 
+In addition to the standard argparse actions, Obsah provides two custom actions:
+
+* ``append_unique`` - Similar to ``append``, but ensures no duplicate values are added to the list
+* ``remove`` - Removes a value from a list (useful when combined with ``dest`` to have add/remove parameter pairs)
+
+Type Validation
+"""""""""""""""
+
+Variables can have a ``type`` field (`argparse type`_) to validate user input. Obsah extends argparse with custom types:
+
+.. _argparse type: https://docs.python.org/3/library/argparse.html#type
+
+* ``File`` - Accepts only existing files
+* ``AbsolutePath`` - Accepts only absolute paths
+* ``Boolean`` - Accepts true/false or 1/0
+* ``FQDN`` - Validates fully qualified domain names
+* ``HTTPUrl`` - Validates HTTP/HTTPS URLs
+* ``Port`` - Validates TCP/UDP ports (0-65535)
+
+Example:
+
+.. code-block:: yaml
+
+    variables:
+      config_file:
+        type: File
+        help: Path to the configuration file
+      hostname:
+        type: FQDN
+        help: The server hostname
+      use_ssl:
+        type: Boolean
+        help: Enable SSL connections
+
+Choices
+"""""""
+
+You can restrict a variable to a specific set of values using ``choices`` (`argparse choices`_):
+
+.. _argparse choices: https://docs.python.org/3/library/argparse.html#choices
+
+.. code-block:: yaml
+
+    variables:
+      logging:
+        choices:
+          - journal
+          - file
+        help: Logging destination
+
+This will restrict the ``--logging`` parameter to only accept ``journal`` or ``file`` as values.
+
+Destination Override
+""""""""""""""""""""
+
+The ``dest`` field (`argparse dest`_) allows multiple parameters to modify the same variable. This is particularly useful when combined with the ``append_unique`` and ``remove`` actions:
+
+.. _argparse dest: https://docs.python.org/3/library/argparse.html#dest
+
+.. code-block:: yaml
+
+    variables:
+      options:
+        parameter: --add-option
+        action: append_unique
+        dest: options
+        help: Add an option
+      remove_options:
+        parameter: --remove-option
+        action: remove
+        dest: options
+        help: Remove an option
+
+This allows both ``--add-option`` and ``--remove-option`` to modify the same ``options`` variable.
+
+Parameter Persistence
+"""""""""""""""""""""
+
+When ``OBSAH_PERSIST_PARAMS`` is enabled, parameter values are saved between runs. You can control this per-variable with the ``persist`` field (defaults to ``true``):
+
+.. code-block:: yaml
+
+    variables:
+      build_type:
+        help: Type of build
+        persist: true  # Value persists across runs
+      one_time_flag:
+        help: One-time flag
+        persist: false  # Value does not persist
+
+Persisted parameters are marked with ``(persisted)`` in the help output and can be reset using ``--reset-<parameter-name>``.
+
+Constraints
+^^^^^^^^^^^
+
+Constraints validate relationships between CLI arguments. They are defined at the top level in the metadata:
+
+.. code-block:: yaml
+
+    constraints:
+      required_together:
+        - [input_file, output_file]
+      required_one_of:
+        - [hostname, url]
+      mutually_exclusive:
+        - [hostname, url]
+      required_if:
+        - ['database_mode', 'external', ['database_host']]
+      forbidden_if:
+        - ['database_mode', 'internal', ['database_host']]
+
+Available constraint types:
+
+* ``required_together`` - All specified arguments must be provided together
+* ``required_one_of`` - At least one of the specified arguments is required
+* ``mutually_exclusive`` - The specified arguments cannot be used together
+* ``required_if`` - If an argument has a specific value, require other arguments
+* ``forbidden_if`` - If an argument has a specific value, forbid other arguments or argument-value pairs
+
+The ``forbidden_if`` constraint supports both argument names and argument-value pairs:
+
+.. code-block:: yaml
+
+    constraints:
+      forbidden_if:
+        # Forbid database_host argument when database_mode is internal
+        - ['database_mode', 'internal', ['database_host']]
+        # Forbid ssl_mode=disable when database_mode is external
+        - ['database_mode', 'external', [['ssl_mode', 'disable']]]
+
+Including Other Metadata
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can reuse variables and constraints from other playbooks using the ``include`` field:
+
+.. code-block:: yaml
+
+    include:
+      - common
+      - database
+
+This will merge the ``variables`` and ``constraints`` from the ``common`` and ``database`` playbook metadata into the current playbook.
+
+Resetting Persisted Parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When using parameter persistence, you can automatically reset certain parameters when a trigger parameter changes:
+
+.. code-block:: yaml
+
+    reset:
+      - ['database_mode', ['database_host', 'database_port']]
+
+This example will reset the persisted values of ``database_host`` and ``database_port`` whenever ``database_mode`` changes to a different value.
+
+Metadata Reference
+^^^^^^^^^^^^^^^^^^
+
+This section provides a complete reference of all available metadata fields.
+
+Top-Level Fields
+""""""""""""""""
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 15 65
+
+   * - Field
+     - Required
+     - Description
+   * - ``help``
+     - Optional
+     - Help text for the playbook. First line appears in main help, full text in subcommand help.
+   * - ``variables``
+     - Optional
+     - Mapping of variables to expose as CLI parameters.
+   * - ``constraints``
+     - Optional
+     - Validation rules for argument relationships.
+   * - ``include``
+     - Optional
+     - List of playbook names to include variables and constraints from.
+   * - ``reset``
+     - Optional
+     - List of parameter reset rules for persisted parameters.
+
+Variable Fields
+"""""""""""""""
+
+Each variable in the ``variables`` mapping can have these fields:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 15 20 45
+
+   * - Field
+     - Required
+     - Source
+     - Description
+   * - ``help``
+     - Yes
+     - argparse
+     - Help text for the parameter
+   * - ``parameter``
+     - No
+     - Obsah
+     - Custom CLI parameter name (default: auto-generated from variable name)
+   * - ``action``
+     - No
+     - argparse + Obsah
+     - Argparse action: ``store_true``, ``store_false``, ``append``, ``append_unique`` (Obsah), ``remove`` (Obsah)
+   * - ``type``
+     - No
+     - argparse + Obsah
+     - Type validator. Obsah types: ``File``, ``AbsolutePath``, ``Boolean``, ``FQDN``, ``HTTPUrl``, ``Port``
+   * - ``choices``
+     - No
+     - argparse
+     - List of allowed values
+   * - ``dest``
+     - No
+     - argparse
+     - Destination variable name (allows multiple parameters to modify same variable)
+   * - ``persist``
+     - No
+     - Obsah
+     - Whether to persist parameter value (default: ``true``)
+
+Constraint Types
+""""""""""""""""
+
+All constraint types are defined under the ``constraints`` field:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Constraint Type
+     - Description
+   * - ``required_together``
+     - List of argument groups that must all be provided together
+   * - ``required_one_of``
+     - List of argument groups where at least one must be provided
+   * - ``mutually_exclusive``
+     - List of argument groups that cannot be used together
+   * - ``required_if``
+     - List of ``[arg, value, [required_args]]`` - require args when condition is met
+   * - ``forbidden_if``
+     - List of ``[arg, value, [forbidden_items]]`` - forbid args or arg=value pairs when condition is met
 
 Fixing the tests
 ^^^^^^^^^^^^^^^^
