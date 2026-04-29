@@ -82,6 +82,18 @@ class RemoveAction(argparse.Action):
         setattr(namespace, self.dest, items)
 
 
+def _merge_constraints(base, other):
+    merged = dict(base)
+    for key, value in other.items():
+        if key in merged:
+            if not isinstance(merged[key], list) or not isinstance(value, list):
+                raise ValueError(f"Cannot merge constraint '{key}': both values must be lists")
+            merged[key] = merged[key] + value
+        else:
+            merged[key] = value
+    return merged
+
+
 @total_ordering
 class Playbook(object):
     """
@@ -122,7 +134,7 @@ class Playbook(object):
                 include_path = os.path.join(self.application_config.playbooks_path(), include, self.application_config.metadata_name())
                 include_data = self._load_metadata_file(include_path)
                 data['variables'] = data.get('variables', {}) | include_data.get('variables', {})
-                data['constraints'] = data.get('constraints', {}) | include_data.get('constraints', {})
+                data['constraints'] = _merge_constraints(data.get('constraints', {}), include_data.get('constraints', {}))
 
             self._metadata = {
                 'help': data.get('help'),
