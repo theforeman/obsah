@@ -121,6 +121,38 @@ def test_generate_ansible_args(playbooks_path, parser, cliargs, expected):
     assert ansible_args == base_expected + expected
 
 
+@pytest.mark.parametrize("base,other,expected", [
+    ({}, {}, {}),
+    ({'required_if': [['a', 1, ['b']]]}, {}, {'required_if': [['a', 1, ['b']]]}),
+    ({}, {'required_if': [['a', 1, ['b']]]}, {'required_if': [['a', 1, ['b']]]}),
+    (
+        {'required_if': [['a', 1, ['b']]]},
+        {'required_if': [['c', 2, ['d']]]},
+        {'required_if': [['a', 1, ['b']], ['c', 2, ['d']]]},
+    ),
+    (
+        {'required_if': [['a', 1, ['b']]], 'mutually_exclusive': [['x', 'y']]},
+        {'required_if': [['c', 2, ['d']]], 'required_together': [['m', 'n']]},
+        {
+            'required_if': [['a', 1, ['b']], ['c', 2, ['d']]],
+            'mutually_exclusive': [['x', 'y']],
+            'required_together': [['m', 'n']],
+        },
+    ),
+])
+def test_merge_constraints(base, other, expected):
+    assert obsah._merge_constraints(base, other) == expected
+
+
+@pytest.mark.parametrize("base,other", [
+    ({'key': 'string'}, {'key': ['list']}),
+    ({'key': ['list']}, {'key': 'string'}),
+])
+def test_merge_constraints_raises_on_non_list(base, other):
+    with pytest.raises(ValueError, match="both values must be lists"):
+        obsah._merge_constraints(base, other)
+
+
 def test_obsah_argument_parser_help(fixture_dir, parser):
     # https://github.com/python/cpython/commit/7cc773ba3d07d4a2e6cd39063fd1954abd6ae8f1
     if sys.version_info >= (3, 12, 7):
