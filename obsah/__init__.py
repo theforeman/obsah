@@ -529,6 +529,17 @@ def reset_args(application_config: ApplicationConfig, metadata: dict, args: argp
     return args
 
 
+def persist_args(application_config, args, dont_persist):
+    persist_dir = os.path.dirname(application_config.persist_path())
+    if not os.path.exists(persist_dir):
+        os.makedirs(persist_dir, mode=0o770, exist_ok=True)
+    with open(application_config.persist_path(), 'w') as persist_file:
+        persist_params = dict(vars(args))
+        for item in dont_persist:
+            persist_params.pop(item, None)
+        yaml.safe_dump(persist_params, persist_file)
+
+
 def rotate_log(log_path: str):
     if log_path is not None and os.path.exists(log_path):
         timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
@@ -572,16 +583,6 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
     if args.playbook.takes_target_parameter and not os.path.exists(inventory_path):
         parser.exit(1, "Could not find your inventory at {}".format(inventory_path))
 
-    if application_config.persist_params():
-        persist_dir = os.path.dirname(application_config.persist_path())
-        if not os.path.exists(persist_dir):
-            os.makedirs(persist_dir, mode=0o770, exist_ok=True)
-        with open(application_config.persist_path(), 'w') as persist_file:
-            persist_params = dict(vars(args))
-            for item in parser.obsah_dont_persist:
-                persist_params.pop(item, None)
-            yaml.safe_dump(persist_params, persist_file)
-
     from ansible.cli.playbook import PlaybookCLI  # pylint: disable=all
 
     ansible_args = generate_ansible_args(inventory_path, args, parser.obsah_arguments)
@@ -593,6 +594,10 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
     cli = PlaybookCLI(ansible_playbook)
     cli.parse()
     exit_code = cli.run()
+
+    if application_config.persist_params() and exit_code == 0:
+        persist_args(application_config, args, parser.obsah_dont_persist)
+
     parser.exit(exit_code)
 
 
