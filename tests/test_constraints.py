@@ -39,6 +39,19 @@ def test_required_if(constraints, args, errors):
 
 
 @pytest.mark.parametrize("constraints,args,errors", [
+    ([[[['a', 1], ['c', 2]], ['b']]], {'a': 1, 'c': 2, 'b': 1}, []),
+    ([[[['a', 1], ['c', 2]], ['b']]], {'a': 1, 'c': 2}, ["['b'] are required because a is 1 and c is 2"]),
+    ([[[['a', 1], ['c', 2]], ['b']]], {'a': 1, 'c': 3}, []),
+    ([[[['a', 1], ['c', 2]], ['b']]], {'a': 2, 'c': 2}, []),
+    ([[[['a', 1], ['c', 2]], ['b']]], {'a': 2, 'c': 3}, []),
+])
+def test_required_if_multi_trigger(constraints, args, errors):
+    metadata = {'constraints': {'required_if': constraints}}
+    found_errors = validate_constraints(metadata, argparse.Namespace(**args))
+    assert errors == found_errors
+
+
+@pytest.mark.parametrize("constraints,args,errors", [
     ([['a', 1, ['b']]], {'a': 1, 'b': 1}, ["['b'] are forbidden because a is 1"]),
     ([['a', 1, ['b']]], {'a': 1}, []),
     ([['a', 1, ['b']]], {'a': 2, 'b': 1}, []),

@@ -35,11 +35,18 @@ def validate_constraints(metadata: dict, args: argparse.Namespace):
             errors.append(f"one of {[variable_to_parameter(x) for x in constraint]} is required")
 
     for constraint in constraints.get('required_if', []):
-        argument_name, argument_value, required_arguments = constraint
-        if argument_name in args and getattr(args, argument_name) == argument_value:
+        if isinstance(constraint[0], str):
+            triggers = [(constraint[0], constraint[1])]
+            required_arguments = constraint[2]
+        else:
+            triggers = constraint[0]
+            required_arguments = constraint[1]
+
+        if all(name in args and getattr(args, name) == value for name, value in triggers):
             if not all(arg in args for arg in required_arguments):
                 required = [variable_to_parameter(x) for x in required_arguments]
-                errors.append(f"{required} are required because {variable_to_parameter(argument_name)} is {argument_value}")
+                trigger_strs = [f"{variable_to_parameter(name)} is {value}" for name, value in triggers]
+                errors.append(f"{required} are required because {' and '.join(trigger_strs)}")
 
     def _validate_forbidden_if_constraint(constraint):
         trigger_arg, trigger_value, forbidden_items = constraint
