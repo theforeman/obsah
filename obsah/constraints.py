@@ -7,7 +7,7 @@ import argparse
 import collections.abc
 
 
-def validate_constraints(metadata: dict, args: argparse.Namespace):
+def validate_constraints(metadata: dict, args: argparse.Namespace):  # pylint: disable=R0912
     """
     validate arguments passed in on the CLI against constraints from a playbook
     """
@@ -46,6 +46,20 @@ def validate_constraints(metadata: dict, args: argparse.Namespace):
             if not all(arg in args for arg in required_arguments):
                 required = [variable_to_parameter(x) for x in required_arguments]
                 trigger_strs = [f"{variable_to_parameter(name)} is {value}" for name, value in triggers]
+                errors.append(f"{required} are required because {' and '.join(trigger_strs)}")
+
+    for constraint in constraints.get('required_in_list', []):
+        if isinstance(constraint[0], str):
+            triggers = [(constraint[0], constraint[1])]
+            required_arguments = constraint[2]
+        else:
+            triggers = constraint[0]
+            required_arguments = constraint[1]
+
+        if all(name in args and value in getattr(args, name) for name, value in triggers):
+            if not all(arg in args for arg in required_arguments):
+                required = [variable_to_parameter(x) for x in required_arguments]
+                trigger_strs = [f"{variable_to_parameter(name)} contains {value}" for name, value in triggers]
                 errors.append(f"{required} are required because {' and '.join(trigger_strs)}")
 
     def _validate_forbidden_if_constraint(constraint):
