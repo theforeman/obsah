@@ -119,6 +119,23 @@ class Playbook(object):
             data = {}
         return data
 
+    def _resolve_includes(self, data, visited=None):
+        """
+        Recursively resolve includes, merging variables and constraints.
+        """
+        if visited is None:
+            visited = set()
+
+        for include in data.get('include', []):
+            if include in visited:
+                continue
+            visited.add(include)
+            include_path = os.path.join(self.application_config.playbooks_path(), include, self.application_config.metadata_name())
+            include_data = self._load_metadata_file(include_path)
+            self._resolve_includes(include_data, visited)
+            data['variables'] = data.get('variables', {}) | include_data.get('variables', {})
+            data['constraints'] = data.get('constraints', {}) | include_data.get('constraints', {})
+
     @property
     def metadata(self) -> Mapping[str, Any]:
         """
@@ -131,11 +148,7 @@ class Playbook(object):
         """
         if not self._metadata:
             data = self._load_metadata_file(self._metadata_path)
-            for include in data.get('include', []):
-                include_path = os.path.join(self.application_config.playbooks_path(), include, self.application_config.metadata_name())
-                include_data = self._load_metadata_file(include_path)
-                data['variables'] = data.get('variables', {}) | include_data.get('variables', {})
-                data['constraints'] = _merge_constraints(data.get('constraints', {}), include_data.get('constraints', {}))
+            self._resolve_includes(data)
 
             self._metadata = {
                 'help': data.get('help'),

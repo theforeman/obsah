@@ -1,0 +1,6 @@
+help: Parent playbook with includes
+variables:
+  parent_var:
+    help: Variable from parent
+include:
+  - include_child
