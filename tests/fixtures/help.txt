@@ -1,13 +1,18 @@
 usage: obsah [-h] action ...
 
 positional arguments:
-  action          which action to execute
-    dummy         Short description
+  action              which action to execute
+    dummy             Short description
+    include_child
+    include_cycle_a
+    include_cycle_b
+    include_grandchild
+    include_parent    Parent playbook with includes
     multiple_plays
-    positional    positional argument test
+    positional        positional argument test
     repoclosure
     setup
-    types         Short description
+    types             Short description
 
-optional arguments:
-  -h, --help      show this help message and exit
+options:
+  -h, --help          show this help message and exit
