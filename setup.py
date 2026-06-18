@@ -2,8 +2,6 @@
 Setup file for obsah
 """
 
-# To use a consistent encoding
-import codecs
 import os
 
 # Always prefer setuptools over distutils
@@ -16,7 +14,7 @@ def get_long_description():
     """
     here = os.path.abspath(os.path.dirname(__file__))
 
-    with codecs.open(os.path.join(here, 'README.md'), encoding='utf-8') as readme:
+    with open(os.path.join(here, 'README.md'), encoding='utf-8') as readme:
         return readme.read()
 
 
