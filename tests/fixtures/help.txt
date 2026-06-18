@@ -14,5 +14,5 @@ positional arguments:
     setup
     types             Short description
 
-options:
+optional arguments:
   -h, --help          show this help message and exit
