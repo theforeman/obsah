@@ -1,0 +1,5 @@
+variables:
+  cycle_a_var:
+    help: Variable from cycle_a
+include:
+  - include_cycle_b
