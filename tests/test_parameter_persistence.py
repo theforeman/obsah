@@ -139,6 +139,23 @@ class TestPersistArgs:
         assert persist_file.exists()
         assert yaml.safe_load(persist_file.read_text()) == {'mapped_list': ['is-nice']}
 
+    def test_persistence_on_success_with_side_effect(self, write_persist, persist_file, persist_application_config):
+        def migration_sideeffect():
+            persisted = {'automatic': 'foo', 'mapped': 'bar'}
+            write_persist(persisted)
+            return 0
+
+        with patch('ansible.utils.display.Display'), \
+             patch('ansible.cli.playbook.PlaybookCLI') as mock_cli_class:
+            mock_cli_class.return_value.run.side_effect = migration_sideeffect
+
+            with pytest.raises(SystemExit) as exc:
+                obsah.main(['dummy', '--my-list', 'is-nice', 'testpackage'], persist_application_config)
+
+        assert exc.value.code == 0
+        assert persist_file.exists()
+        assert yaml.safe_load(persist_file.read_text()) == {'mapped_list': ['is-nice'], 'automatic': 'foo', 'mapped': 'bar'}
+
     def test_no_persistence_on_failure(self, persist_file, persist_application_config):
         with patch('ansible.utils.display.Display'), \
              patch('ansible.cli.playbook.PlaybookCLI') as mock_cli_class:
