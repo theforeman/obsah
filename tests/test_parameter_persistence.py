@@ -4,6 +4,8 @@ import pytest
 import yaml
 import obsah
 
+from unittest.mock import patch
+
 
 @pytest.fixture
 def state_path(tmp_path):
@@ -126,21 +128,18 @@ class TestPersistArgs:
         assert nested.exists()
 
     def test_persistence_on_success(self, persist_file, persist_application_config):
-        from unittest.mock import patch
-
         with patch('ansible.utils.display.Display'), \
              patch('ansible.cli.playbook.PlaybookCLI') as mock_cli_class:
             mock_cli_class.return_value.run.return_value = 0
 
             with pytest.raises(SystemExit) as exc:
-                obsah.main(['dummy', 'testpackage'], persist_application_config)
+                obsah.main(['dummy', '--my-list', 'is-nice', 'testpackage'], persist_application_config)
 
         assert exc.value.code == 0
         assert persist_file.exists()
+        assert yaml.safe_load(persist_file.read_text()) == {'mapped_list': ['is-nice']}
 
     def test_no_persistence_on_failure(self, persist_file, persist_application_config):
-        from unittest.mock import patch
-
         with patch('ansible.utils.display.Display'), \
              patch('ansible.cli.playbook.PlaybookCLI') as mock_cli_class:
             mock_cli_class.return_value.run.return_value = 1
