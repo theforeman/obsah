@@ -472,7 +472,7 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                 argument_args['choices'] = variable.choices
             if variable.parameter.startswith('--'):
                 argument_args['dest'] = variable.dest or variable.name
-            
+
             if application_config.persist_params() and variable.parameter.startswith('--') and variable.persist:
                 base_help = argument_args.get('help') or ''
                 argument_args['help'] = f"{base_help} (persisted)".strip()
@@ -547,8 +547,15 @@ def persist_args(application_config, args, dont_persist):
     persist_dir = os.path.dirname(application_config.persist_path())
     if not os.path.exists(persist_dir):
         os.makedirs(persist_dir, mode=0o770, exist_ok=True)
+
+    try:
+        with open(application_config.persist_path()) as persist_file:
+            persist_params = yaml.safe_load(persist_file)
+    except FileNotFoundError:
+        persist_params = {}
+
     with open(application_config.persist_path(), 'w') as persist_file:
-        persist_params = dict(vars(args))
+        persist_params.update(dict(vars(args)))
         for item in dont_persist:
             persist_params.pop(item, None)
         yaml.safe_dump(persist_params, persist_file)
