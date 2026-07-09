@@ -64,7 +64,7 @@ def write_persist(persist_file):
 
 
 class TestResetParam:
-    def test_reset_removes_only_specified_param(self, write_persist, persist_application_config):
+    def test_reset_removes_only_specified_param(self, write_persist, persist_file, persist_application_config):
         persisted = {'automatic': 'foo', 'mapped': 'bar'}
         write_persist(persisted)
 
@@ -75,7 +75,12 @@ class TestResetParam:
         assert not hasattr(args, 'automatic')
         assert getattr(args, 'mapped') == 'bar'
 
-    def test_reset_multiple(self, write_persist, persist_application_config):
+        obsah.persist_args(persist_application_config, args, parser.obsah_dont_persist)
+        params = yaml.safe_load(persist_file.read_text())
+        assert 'automatic' not in params
+        assert params['mapped'] == 'bar'
+
+    def test_reset_multiple(self, write_persist, persist_file, persist_application_config):
         persisted = {'automatic': 'a', 'mapped': 'b', 'store_true': True}
         write_persist(persisted)
 
@@ -86,6 +91,12 @@ class TestResetParam:
         assert not hasattr(args, 'automatic')
         assert not hasattr(args, 'mapped')
         assert getattr(args, 'store_true') is True
+
+        obsah.persist_args(persist_application_config, args, parser.obsah_dont_persist)
+        params = yaml.safe_load(persist_file.read_text())
+        assert 'automatic' not in params
+        assert 'mapped' not in params
+        assert params['store_true'] is True
 
     def test_no_persist_file(self, persist_file, persist_application_config):
         assert not os.path.exists(persist_file)
