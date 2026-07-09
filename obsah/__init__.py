@@ -570,6 +570,8 @@ def persist_args(application_config, args, dont_persist):
         persist_params.update(dict(vars(args)))
         for item in dont_persist:
             persist_params.pop(item, None)
+        for item in getattr(args, 'obsah_reset', None) or []:
+            persist_params.pop(item, None)
         yaml.safe_dump(persist_params, persist_file)
 
 
