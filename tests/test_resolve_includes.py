@@ -35,6 +35,13 @@ class TestResolveIncludes:
         assert 'grandchild_var' in variables
         assert 'mutually_exclusive' in playbook.metadata['constraints']
 
+    def test_overlapping_constraints_are_merged(self, playbooks_path, application_config):
+        playbook = make_playbook(playbooks_path, application_config, 'include_parent')
+        required_if = playbook.metadata['constraints']['required_if']
+        assert ['parent_var', 'y', ['child_var']] in required_if
+        assert ['child_var', 'x', ['automatic']] in required_if
+        assert len(required_if) == 2
+
     def test_cyclic_includes(self, playbooks_path, application_config):
         playbook = make_playbook(playbooks_path, application_config, 'include_cycle_a')
         variables = {v.name for v in playbook.metadata['variables']}
