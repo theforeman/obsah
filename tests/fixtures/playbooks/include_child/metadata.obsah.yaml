@@ -1,6 +1,8 @@
 variables:
   child_var:
     help: Variable from child
+  shared_var:
+    help: Variable from child
 constraints:
   required_if:
     - ['child_var', 'x', ['automatic']]

@@ -35,6 +35,12 @@ class TestResolveIncludes:
         assert 'grandchild_var' in variables
         assert 'mutually_exclusive' in playbook.metadata['constraints']
 
+    def test_overlapping_variables_are_merged(self, playbooks_path, application_config):
+        playbook = make_playbook(playbooks_path, application_config, 'include_parent')
+        shared_var = next(v for v in playbook.metadata['variables'] if v.name == 'shared_var')
+        assert shared_var.help_text == 'Variable from child'
+        assert shared_var.persist is False
+
     def test_overlapping_constraints_are_merged(self, playbooks_path, application_config):
         playbook = make_playbook(playbooks_path, application_config, 'include_parent')
         required_if = playbook.metadata['constraints']['required_if']

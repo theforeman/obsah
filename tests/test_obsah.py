@@ -153,6 +153,38 @@ def test_merge_constraints_raises_on_non_list(base, other):
         obsah._merge_constraints(base, other)
 
 
+@pytest.mark.parametrize("base,other,expected", [
+    ({}, {}, {}),
+    ({'var_a': {'help': 'a'}}, {}, {'var_a': {'help': 'a'}}),
+    ({}, {'var_a': {'help': 'a'}}, {'var_a': {'help': 'a'}}),
+    (
+        {'var_a': {'help': 'from base', 'action': 'store_true'}},
+        {'var_a': {'help': 'from other'}},
+        {'var_a': {'help': 'from other', 'action': 'store_true'}},
+    ),
+    (
+        {'var_a': {'help': 'a'}, 'var_b': {'help': 'b'}},
+        {'var_a': {'help': 'a2'}, 'var_c': {'help': 'c'}},
+        {
+            'var_a': {'help': 'a2'},
+            'var_b': {'help': 'b'},
+            'var_c': {'help': 'c'},
+        },
+    ),
+])
+def test_merge_variables(base, other, expected):
+    assert obsah._merge_variables(base, other) == expected
+
+
+@pytest.mark.parametrize("base,other", [
+    ({'key': 'string'}, {'key': {'help': 'a'}}),
+    ({'key': {'help': 'a'}}, {'key': 'string'}),
+])
+def test_merge_variables_raises_on_non_mapping(base, other):
+    with pytest.raises(ValueError, match="both values must be Mappings"):
+        obsah._merge_variables(base, other)
+
+
 def test_obsah_argument_parser_help(fixture_dir, parser):
     # https://github.com/python/cpython/commit/7cc773ba3d07d4a2e6cd39063fd1954abd6ae8f1
     if sys.version_info >= (3, 12, 7):
