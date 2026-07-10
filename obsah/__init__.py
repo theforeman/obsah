@@ -95,6 +95,18 @@ def _merge_constraints(base, other):
     return merged
 
 
+def _merge_variables(base, other):
+    merged = dict(base)
+    for key, value in other.items():
+        if key in merged:
+            if not isinstance(merged[key], Mapping) or not isinstance(value, Mapping):
+                raise ValueError(f"Cannot merge variable '{key}': both values must be Mappings")
+            merged[key] = {**merged[key], **value}
+        else:
+            merged[key] = value
+    return merged
+
+
 @total_ordering
 class Playbook(object):
     """
@@ -133,7 +145,7 @@ class Playbook(object):
             include_path = os.path.join(self.application_config.playbooks_path(), include, self.application_config.metadata_name())
             include_data = self._load_metadata_file(include_path)
             self._resolve_includes(include_data, visited)
-            data['variables'] = data.get('variables', {}) | include_data.get('variables', {})
+            data['variables'] = _merge_variables(data.get('variables', {}), include_data.get('variables', {}))
             data['constraints'] = _merge_constraints(data.get('constraints', {}), include_data.get('constraints', {}))
 
     @property

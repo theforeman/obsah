@@ -1,6 +1,8 @@
 variables:
   grandchild_var:
     help: Variable from grandchild
+  shared_var:
+    persist: false
 constraints:
   mutually_exclusive:
     - ['grandchild_var', 'parent_var']
