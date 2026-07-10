@@ -2,5 +2,8 @@ help: Parent playbook with includes
 variables:
   parent_var:
     help: Variable from parent
+constraints:
+  required_if:
+    - ['parent_var', 'y', ['child_var']]
 include:
   - include_child

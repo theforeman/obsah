@@ -134,7 +134,7 @@ class Playbook(object):
             include_data = self._load_metadata_file(include_path)
             self._resolve_includes(include_data, visited)
             data['variables'] = data.get('variables', {}) | include_data.get('variables', {})
-            data['constraints'] = data.get('constraints', {}) | include_data.get('constraints', {})
+            data['constraints'] = _merge_constraints(data.get('constraints', {}), include_data.get('constraints', {}))
 
     @property
     def metadata(self) -> Mapping[str, Any]:
