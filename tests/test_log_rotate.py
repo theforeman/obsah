@@ -25,3 +25,24 @@ def test_rotate_log(tmp_path):
     assert 'test.log' not in log_dir_contents[0].name
     assert 'test.' in log_dir_contents[0].name
     assert not log_file.exists()
+
+def test_rotate_log_tolerates_concurrent_rotation(tmp_path):
+    # Another concurrent obsah invocation can rename the same log file away
+    # between our exists() check and our own rename.
+    log_file = tmp_path / 'test.log'
+    log_file.touch()
+    stolen = tmp_path / 'stolen.log'
+    original_exists = os.path.exists
+
+    def exists_then_steal(path):
+        result = original_exists(path)
+        if path == str(log_file) and result and not stolen.exists():
+            os.rename(path, str(stolen))
+        return result
+
+    with mock.patch('os.path.exists', side_effect=exists_then_steal):
+        obsah.rotate_log(str(log_file))  # must not raise
+
+    assert stolen.exists()
+    assert not log_file.exists()
+
