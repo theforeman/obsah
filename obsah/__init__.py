@@ -582,7 +582,8 @@ def rotate_log(log_path: str):
             backup_path = f"{log_path[:-4]}.{timestamp}.log"
         else:
             backup_path = f"{log_path}.{timestamp}"
-        os.rename(log_path, backup_path)
+        with contextlib.suppress(FileNotFoundError):
+            os.rename(log_path, backup_path)
 
 def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable=R0914
     """
