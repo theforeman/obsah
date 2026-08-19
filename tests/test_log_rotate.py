@@ -27,8 +27,6 @@ def test_rotate_log(tmp_path):
     assert not log_file.exists()
 
 def test_rotate_log_tolerates_concurrent_rotation(tmp_path):
-    # Another concurrent obsah invocation can rename the same log file away
-    # between our exists() check and our own rename.
     log_file = tmp_path / 'test.log'
     log_file.touch()
     stolen = tmp_path / 'stolen.log'
