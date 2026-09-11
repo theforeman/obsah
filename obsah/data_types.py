@@ -3,6 +3,7 @@ obsah data types to be used to validate user input
 """
 
 import argparse
+import ipaddress
 import os
 import pathlib
 import re
@@ -103,6 +104,20 @@ class HTTPUrl(RegexType):
     A HTTP or HTTPS URL
     """
     REGEX = r'(?i:\Ahttps?:\/\/.*\Z)'
+
+
+class IP(BaseType):
+    """
+    An IPv4/IPv6 address or CIDR network prefix
+    """
+    def validate(self, string):
+        string = string.strip()
+        if '/' in string:
+            ipaddress.ip_network(string, strict=False)
+            return string
+
+        ipaddress.ip_address(string)
+        return string
 
 
 def register_types(parser: argparse.ArgumentParser):

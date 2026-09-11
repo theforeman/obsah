@@ -246,6 +246,7 @@ Variables can have a ``type`` field (`argparse type`_) to validate user input. O
 * ``Boolean`` - Accepts true/false or 1/0
 * ``FQDN`` - Validates fully qualified domain names
 * ``HTTPUrl`` - Validates HTTP/HTTPS URLs
+* ``IP`` - Accepts a single IPv4/IPv6 address or a CIDR network prefix
 * ``Port`` - Validates TCP/UDP ports (0-65535)
 
 Example:
@@ -443,7 +444,7 @@ Each variable in the ``variables`` mapping can have these fields:
    * - ``type``
      - No
      - argparse + Obsah
-     - Type validator. Obsah types: ``File``, ``AbsolutePath``, ``Boolean``, ``FQDN``, ``HTTPUrl``, ``Port``
+     - Type validator. Obsah types: ``File``, ``AbsolutePath``, ``Boolean``, ``FQDN``, ``HTTPUrl``, ``IP``, ``Port``
    * - ``choices``
      - No
      - argparse
