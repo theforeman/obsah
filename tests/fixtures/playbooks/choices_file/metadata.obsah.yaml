@@ -1,0 +1,5 @@
+variables:
+  flavor:
+    help: Base flavor to use
+    choices:
+      - gamma
