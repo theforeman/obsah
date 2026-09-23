@@ -118,6 +118,37 @@ class TestPersistArgs:
         assert params['automatic'] == 'foo'
         assert params['mapped'] == 'bar'
 
+    def test_remove_destination_is_persisted_but_raw_operands_are_not(
+        self, write_persist, persist_file, persist_application_config
+    ):
+        write_persist({
+            'features': ['foo', 'bar'],
+            'remove_features': ['stale'],
+            'removed_features': ['stale'],
+            'automatic': 'preserved',
+        })
+
+        parser = obsah.obsah_argument_parser(persist_application_config, targets=['testpackage'])
+        args = parser.parse_args(['dummy', 'testpackage', '--remove-feature', 'foo'])
+
+        assert args.features == ['bar']
+        assert args.remove_features == ['foo']
+        assert args.removed_features == ['foo']
+
+        obsah.persist_args(persist_application_config, args, parser.obsah_dont_persist)
+        params = yaml.safe_load(persist_file.read_text())
+        assert params == {'automatic': 'preserved', 'features': ['bar']}
+
+    def test_remove_from_missing_state_creates_only_destination(
+        self, persist_file, persist_application_config
+    ):
+        parser = obsah.obsah_argument_parser(persist_application_config, targets=['testpackage'])
+        args = parser.parse_args(['dummy', 'testpackage', '--remove-feature', 'foo'])
+
+        obsah.persist_args(persist_application_config, args, parser.obsah_dont_persist)
+        params = yaml.safe_load(persist_file.read_text())
+        assert params == {'features': []}
+
     def test_dont_persist_filtered(self, persist_file, persist_application_config):
         args = argparse.Namespace(automatic='foo', mapped='bar')
         obsah.persist_args(persist_application_config, args, {'mapped'})
