@@ -113,6 +113,23 @@ Multiple lines are joined but a single empty line indicates a newline. A double 
 
 The first line is taken as a short description while the full text is included in the commands ``--help`` as can be seen above.
 
+Playbook options
+^^^^^^^^^^^^^^^^
+
+The ``--verbose`` and ``--extra-vars`` arguments can be enabled or disabled for
+each playbook. Parameter persistence can be controlled in the same way:
+
+.. code-block:: yaml
+
+    allow_verbose: false
+    allow_extra_vars: false
+    persist_params: false
+
+``allow_verbose`` defaults to ``true``. ``allow_extra_vars`` and
+``persist_params`` default to the values from ``ApplicationConfig``. Setting
+either key in the metadata overrides the application-wide value for that
+playbook only.
+
 Variables
 ^^^^^^^^^
 
