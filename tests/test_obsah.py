@@ -2,6 +2,7 @@ import sys
 
 import pytest
 import obsah
+import yaml
 
 
 @pytest.fixture
@@ -37,6 +38,16 @@ def parser(application_config, targets=['testpackage']):
     return obsah.obsah_argument_parser(application_config, targets=targets)
 
 
+def create_playbook(tmp_path, application_config, **metadata):
+    playbook_dir = tmp_path / 'configured'
+    playbook_dir.mkdir()
+    playbook_path = playbook_dir / 'configured.yaml'
+    playbook_path.write_text('---\n- hosts:\n    - localhost\n')
+    metadata_path = playbook_dir / application_config.metadata_name()
+    metadata_path.write_text(yaml.safe_dump(metadata))
+    return obsah.Playbook(str(playbook_path), application_config)
+
+
 def test_find_no_targets(fixture_dir):
     targets = obsah.find_targets((fixture_dir / 'nope.yaml').strpath)
     assert targets is None
@@ -55,6 +66,81 @@ def test_playbook_constructor(application_config, playbooks_path):
     playbook = obsah.Playbook(path, application_config)
     assert playbook.path == path
     assert playbook.name == 'setup'
+
+
+def test_playbook_option_defaults(application_config, playbooks_path):
+    path = (playbooks_path / 'dummy' / 'dummy.yaml').strpath
+    playbook = obsah.Playbook(path, application_config)
+
+    assert playbook.allow_verbose is True
+    assert playbook.allow_extra_vars is True
+    assert playbook.persist_params is False
+
+
+def test_playbook_can_disable_arguments(tmp_path, application_config):
+    playbook = create_playbook(tmp_path, application_config,
+                               allow_verbose=False, allow_extra_vars=False)
+    parser = obsah.obsah_argument_parser(application_config, playbooks=[playbook])
+
+    help_text = parser._subparsers._group_actions[0].choices['configured'].format_help()
+    assert '--verbose' not in help_text
+    assert '--extra-vars' not in help_text
+    with pytest.raises(SystemExit):
+        parser.parse_args(['configured', '--verbose'])
+    with pytest.raises(SystemExit):
+        parser.parse_args(['configured', '--extra-vars', 'answer=42'])
+
+    args = parser.parse_args(['configured'])
+    ansible_args = obsah.generate_ansible_args('inventory.yml', args, parser.obsah_arguments)
+    assert ansible_args == [playbook.path, '--inventory', 'inventory.yml',
+                            '-e', '{"obsah_state_path": "/var/lib/obsah"}']
+
+
+def test_playbook_can_enable_application_disabled_options(tmp_path, application_config):
+    class DisabledApplicationConfig(application_config):
+        @staticmethod
+        def allow_extra_vars():
+            return False
+
+        @staticmethod
+        def persist_params():
+            return False
+
+        @staticmethod
+        def state_path():
+            return str(tmp_path)
+
+    (tmp_path / 'parameters.yaml').write_text('saved: value\n')
+    playbook = create_playbook(tmp_path, DisabledApplicationConfig,
+                               allow_verbose=True, allow_extra_vars=True,
+                               persist_params=True)
+    parser = obsah.obsah_argument_parser(DisabledApplicationConfig,
+                                         playbooks=[playbook])
+
+    args = parser.parse_args(['configured', '--verbose', '--extra-vars', 'answer=42'])
+    assert args.verbose == 1
+    assert args.extra_vars == ['answer=42']
+    assert args.saved == 'value'
+
+
+def test_playbook_can_disable_application_persistence(tmp_path, application_config):
+    class PersistApplicationConfig(application_config):
+        @staticmethod
+        def persist_params():
+            return True
+
+        @staticmethod
+        def state_path():
+            return str(tmp_path)
+
+    (tmp_path / 'parameters.yaml').write_text('saved: value\n')
+    playbook = create_playbook(tmp_path, PersistApplicationConfig,
+                               persist_params=False)
+    parser = obsah.obsah_argument_parser(PersistApplicationConfig,
+                                         playbooks=[playbook])
+
+    args = parser.parse_args(['configured'])
+    assert not hasattr(args, 'saved')
 
 
 @pytest.mark.parametrize('playbook,expected', [

@@ -63,6 +63,39 @@ def write_persist(persist_file):
     return _write
 
 
+@pytest.mark.parametrize('application_persist,playbook_persist,variable_persist,shows_reset', [
+    (False, True, True, True),
+    (True, False, True, False),
+    (True, True, False, False),
+])
+def test_reset_help_follows_playbook_persistence(tmp_path, capsys, persist_application_config,
+                                                application_persist, playbook_persist,
+                                                variable_persist, shows_reset):
+    playbook_dir = tmp_path / 'configured'
+    playbook_dir.mkdir()
+    playbook_path = playbook_dir / 'configured.yaml'
+    playbook_path.write_text('---\n- hosts: localhost\n')
+    (playbook_dir / 'metadata.obsah.yaml').write_text(yaml.safe_dump({
+        'persist_params': playbook_persist,
+        'variables': {'example': {'help': 'Example value', 'persist': variable_persist}},
+    }))
+
+    class PerPlaybookConfig(persist_application_config):
+        @staticmethod
+        def persist_params():
+            return application_persist
+
+        @classmethod
+        def playbooks(cls):
+            return [obsah.Playbook(str(playbook_path), cls)]
+
+    parser = obsah.obsah_argument_parser(PerPlaybookConfig)
+    with pytest.raises(SystemExit) as exc:
+        parser.parse_args(['configured', '--help'])
+    assert exc.value.code == 0
+    assert ('--reset-<parameter-name>' in capsys.readouterr().out) is shows_reset
+
+
 class TestResetParam:
     def test_reset_removes_only_specified_param(self, write_persist, persist_file, persist_application_config):
         persisted = {'automatic': 'foo', 'mapped': 'bar'}
@@ -177,3 +210,53 @@ class TestPersistArgs:
 
         assert exc.value.code == 1
         assert not persist_file.exists()
+
+    def test_playbook_can_disable_application_persistence(self, tmp_path, persist_file,
+                                                          persist_application_config):
+        playbook_dir = tmp_path / 'configured'
+        playbook_dir.mkdir()
+        playbook_path = playbook_dir / 'configured.yaml'
+        playbook_path.write_text('---\n- hosts:\n    - localhost\n')
+        (playbook_dir / 'metadata.obsah.yaml').write_text('persist_params: false\n')
+
+        class PerPlaybookConfig(persist_application_config):
+            @classmethod
+            def playbooks(cls):
+                return [obsah.Playbook(str(playbook_path), cls)]
+
+        with patch('ansible.utils.display.Display'), \
+             patch('ansible.cli.playbook.PlaybookCLI') as mock_cli_class:
+            mock_cli_class.return_value.run.return_value = 0
+
+            with pytest.raises(SystemExit) as exc:
+                obsah.main(['configured'], PerPlaybookConfig)
+
+        assert exc.value.code == 0
+        assert not persist_file.exists()
+
+    def test_playbook_can_enable_application_persistence(self, tmp_path, persist_file,
+                                                         persist_application_config):
+        playbook_dir = tmp_path / 'configured'
+        playbook_dir.mkdir()
+        playbook_path = playbook_dir / 'configured.yaml'
+        playbook_path.write_text('---\n- hosts:\n    - localhost\n')
+        (playbook_dir / 'metadata.obsah.yaml').write_text('persist_params: true\n')
+
+        class PerPlaybookConfig(persist_application_config):
+            @staticmethod
+            def persist_params():
+                return False
+
+            @classmethod
+            def playbooks(cls):
+                return [obsah.Playbook(str(playbook_path), cls)]
+
+        with patch('ansible.utils.display.Display'), \
+             patch('ansible.cli.playbook.PlaybookCLI') as mock_cli_class:
+            mock_cli_class.return_value.run.return_value = 0
+
+            with pytest.raises(SystemExit) as exc:
+                obsah.main(['configured'], PerPlaybookConfig)
+
+        assert exc.value.code == 0
+        assert persist_file.exists()
