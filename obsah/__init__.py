@@ -166,7 +166,10 @@ class Playbook(object):
                 'help': data.get('help'),
                 'variables': sorted(self._parse_parameters(data.get('variables', {}))),
                 'constraints': data.get('constraints', {}),
-                'reset': data.get('reset', [])
+                'reset': data.get('reset', []),
+                'allow_verbose': data.get('allow_verbose', True),
+                'allow_extra_vars': data.get('allow_extra_vars', self.application_config.allow_extra_vars()),
+                'persist_params': data.get('persist_params', self.application_config.persist_params()),
             }
 
         return self._metadata
@@ -207,6 +210,27 @@ class Playbook(object):
         The full help text if available. This is extracted from the metadata.
         """
         return self.metadata['help']
+
+    @property
+    def allow_verbose(self) -> bool:
+        """
+        Whether to expose the --verbose parameter for this playbook.
+        """
+        return self.metadata['allow_verbose']
+
+    @property
+    def allow_extra_vars(self) -> bool:
+        """
+        Whether to expose the --extra-vars parameter for this playbook.
+        """
+        return self.metadata['allow_extra_vars']
+
+    @property
+    def persist_params(self) -> bool:
+        """
+        Whether to persist parameters for this playbook.
+        """
+        return self.metadata['persist_params']
 
     def _parse_parameters(self, variables: Mapping[str, Mapping[str, str]]) -> Iterable[Variable]:
         """
@@ -416,14 +440,9 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
     parser = ObsahArgumentParser(application_config.name())
 
     parser.obsah_arguments = []
-    parser.obsah_dont_persist = {'playbook'}
+    parser.obsah_dont_persist = {'extra_vars', 'playbook', 'verbose'}
 
     parent_parser = argparse.ArgumentParser(add_help=False)
-    parent_parser.add_argument("-v", "--verbose",
-                               action="count",
-                               dest="verbose",
-                               help="verbose output")
-    parser.obsah_dont_persist.add('verbose')
 
     if application_config.allow_inventory_auth():
         parent_parser.add_argument("-k", "--ask-pass",
@@ -437,16 +456,6 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                                    help="use this file to authenticate the connection")
         parser.obsah_dont_persist.add('private_key_file')
 
-    if application_config.allow_extra_vars():
-        advanced = parent_parser.add_argument_group('advanced arguments')
-        advanced.add_argument('-e', '--extra-vars',
-                              dest="extra_vars",
-                              action="append",
-                              default=[],
-                              help="""set additional variables as key=value or
-                              YAML/JSON, if filename prepend with @""")
-        parser.obsah_dont_persist.add('extra_vars')
-
     subparsers = parser.add_subparsers(dest='action', metavar='action',
                                        required=True,
                                        help="""which action to execute""")
@@ -459,7 +468,23 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                                           formatter_class=argparse.RawDescriptionHelpFormatter)
         data_types.register_types(subparser)
         subparser.set_defaults(playbook=playbook)
-        if application_config.persist_params():
+
+        if playbook.allow_verbose:
+            subparser.add_argument("-v", "--verbose",
+                                   action="count",
+                                   dest="verbose",
+                                   help="verbose output")
+
+        if playbook.allow_extra_vars:
+            advanced = subparser.add_argument_group('advanced arguments')
+            advanced.add_argument('-e', '--extra-vars',
+                                  dest="extra_vars",
+                                  action="append",
+                                  default=[],
+                                  help="""set additional variables as key=value or
+                                  YAML/JSON, if filename prepend with @""")
+
+        if playbook.persist_params:
             subparser.epilog = "Parameters marked as (persisted) can be reset by --reset-<parameter-name>."
             with contextlib.suppress(FileNotFoundError):
                 with open(application_config.persist_path()) as persist_file:
@@ -485,14 +510,14 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
             if variable.parameter.startswith('--'):
                 argument_args['dest'] = variable.dest or variable.name
 
-            if application_config.persist_params() and variable.parameter.startswith('--') and variable.persist:
+            if playbook.persist_params and variable.parameter.startswith('--') and variable.persist:
                 base_help = argument_args.get('help') or ''
                 argument_args['help'] = f"{base_help} (persisted)".strip()
 
             subparser.add_argument(variable.parameter, **argument_args)
             parser.obsah_arguments.append(variable.name)
 
-            if application_config.persist_params():
+            if playbook.persist_params:
                 if variable.parameter.startswith('--') and variable.persist:
                     reset_param = variable.parameter.replace('--', '--reset-')
                     subparser.add_argument(reset_param, help=argparse.SUPPRESS, action='append_const', dest='obsah_reset', const=variable.name)
@@ -516,7 +541,7 @@ def generate_ansible_args(inventory_path, args, obsah_arguments):
     if hasattr(args, 'target'):
         limit = ':'.join(args.target)
         ansible_args.extend(['--limit', limit])
-    if args.verbose:
+    if getattr(args, 'verbose', 0):
         ansible_args.append("-%s" % str("v" * args.verbose))
 
     if getattr(args, 'ask_pass', False):
@@ -610,7 +635,7 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
 
     args = parser.parse_args(cliargs)
 
-    if application_config.persist_params():
+    if args.playbook.persist_params:
         args = reset_args(application_config, args.playbook.metadata, args)
 
     if errors := validate_constraints(args.playbook.metadata, args):
@@ -624,14 +649,14 @@ def main(cliargs=None, application_config=ApplicationConfig):  # pylint: disable
     ansible_args = generate_ansible_args(inventory_path, args, parser.obsah_arguments)
     ansible_playbook = (["ansible-playbook"] + ansible_args)
 
-    if args.verbose:
+    if getattr(args, 'verbose', 0):
         print("ANSIBLE_CONFIG={}".format(os.environ["ANSIBLE_CONFIG"]), ' '.join(ansible_playbook))
 
     cli = PlaybookCLI(ansible_playbook)
     cli.parse()
     exit_code = cli.run()
 
-    if application_config.persist_params() and exit_code == 0:
+    if args.playbook.persist_params and exit_code == 0:
         try:
             persist_args(application_config, args, parser.obsah_dont_persist)
         except OSError as exc:

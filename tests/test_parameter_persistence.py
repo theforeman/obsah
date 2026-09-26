@@ -177,3 +177,53 @@ class TestPersistArgs:
 
         assert exc.value.code == 1
         assert not persist_file.exists()
+
+    def test_playbook_can_disable_application_persistence(self, tmp_path, persist_file,
+                                                          persist_application_config):
+        playbook_dir = tmp_path / 'configured'
+        playbook_dir.mkdir()
+        playbook_path = playbook_dir / 'configured.yaml'
+        playbook_path.write_text('---\n- hosts:\n    - localhost\n')
+        (playbook_dir / 'metadata.obsah.yaml').write_text('persist_params: false\n')
+
+        class PerPlaybookConfig(persist_application_config):
+            @classmethod
+            def playbooks(cls):
+                return [obsah.Playbook(str(playbook_path), cls)]
+
+        with patch('ansible.utils.display.Display'), \
+             patch('ansible.cli.playbook.PlaybookCLI') as mock_cli_class:
+            mock_cli_class.return_value.run.return_value = 0
+
+            with pytest.raises(SystemExit) as exc:
+                obsah.main(['configured'], PerPlaybookConfig)
+
+        assert exc.value.code == 0
+        assert not persist_file.exists()
+
+    def test_playbook_can_enable_application_persistence(self, tmp_path, persist_file,
+                                                         persist_application_config):
+        playbook_dir = tmp_path / 'configured'
+        playbook_dir.mkdir()
+        playbook_path = playbook_dir / 'configured.yaml'
+        playbook_path.write_text('---\n- hosts:\n    - localhost\n')
+        (playbook_dir / 'metadata.obsah.yaml').write_text('persist_params: true\n')
+
+        class PerPlaybookConfig(persist_application_config):
+            @staticmethod
+            def persist_params():
+                return False
+
+            @classmethod
+            def playbooks(cls):
+                return [obsah.Playbook(str(playbook_path), cls)]
+
+        with patch('ansible.utils.display.Display'), \
+             patch('ansible.cli.playbook.PlaybookCLI') as mock_cli_class:
+            mock_cli_class.return_value.run.return_value = 0
+
+            with pytest.raises(SystemExit) as exc:
+                obsah.main(['configured'], PerPlaybookConfig)
+
+        assert exc.value.code == 0
+        assert persist_file.exists()
