@@ -305,6 +305,31 @@ The ``dest`` field (`argparse dest`_) allows multiple parameters to modify the s
 
 This allows both ``--add-option`` and ``--remove-option`` to modify the same ``options`` variable.
 
+When a ``remove`` variable has a distinct ``dest``, Obsah also exposes the
+operands supplied to that parameter under the source variable name. This is
+useful when the playbook needs to validate the requested operations while the
+destination contains the final value:
+
+.. code-block:: yaml
+
+    variables:
+      options:
+        parameter: --add-option
+        action: append_unique
+      remove_options:
+        parameter: --remove-option
+        action: remove
+        dest: options
+        persist: false
+
+The playbook receives both ``options`` (the final list) and
+``remove_options`` (the unique values explicitly supplied on the command
+line). ``persist: false`` applies to the source operation list; the ``options``
+destination is still persisted. A remove variable may also set ``effective_dest``
+to expose only operands that actually removed an existing item. This lets a
+playbook distinguish an idempotent removal no-op from a feature that was
+removed during this invocation.
+
 Parameter Persistence
 """""""""""""""""""""
 
@@ -320,7 +345,9 @@ When ``OBSAH_PERSIST_PARAMS`` is enabled, parameter values are saved between run
         help: One-time flag
         persist: false  # Value does not persist
 
-Persisted parameters are marked with ``(persisted)`` in the help output and can be reset using ``--reset-<parameter-name>``.
+Persisted parameters are marked with ``(persisted)`` in the help output and can be reset using ``--reset-<parameter-name>``. Non-persistent variables are not loaded from an existing state file, so a one-shot operation cannot be replayed accidentally on a later command.
+
+Parameters are written only after a successful playbook run.
 
 Constraints
 ^^^^^^^^^^^
