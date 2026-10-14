@@ -459,8 +459,8 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                                           formatter_class=argparse.RawDescriptionHelpFormatter)
         data_types.register_types(subparser)
         subparser.set_defaults(playbook=playbook)
+        has_resettable_persisted_params = False
         if application_config.persist_params():
-            subparser.epilog = "Parameters marked as (persisted) can be reset by --reset-<parameter-name>."
             with contextlib.suppress(FileNotFoundError):
                 with open(application_config.persist_path()) as persist_file:
                     persist_params = yaml.safe_load(persist_file)
@@ -496,10 +496,15 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
                 if variable.parameter.startswith('--') and variable.persist:
                     reset_param = variable.parameter.replace('--', '--reset-')
                     subparser.add_argument(reset_param, help=argparse.SUPPRESS, action='append_const', dest='obsah_reset', const=variable.name)
+                    has_resettable_persisted_params = True
                 else:
                     # Don't persist positional arguments
                     parser.obsah_dont_persist.add(variable.name)
 
+        if application_config.persist_params() and has_resettable_persisted_params:
+            subparser.epilog = (
+                "Parameters marked as (persisted) can be reset by --reset-<parameter-name>."
+            )
         parser.obsah_dont_persist.add('obsah_reset')
 
     if argcomplete:
