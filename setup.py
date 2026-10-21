@@ -36,7 +36,7 @@ setup(
     name='obsah',
     version='1.11.0',
     license='GPL-2.0-only',
-    description='packaging wrapper using ansible',
+    description='easily build CLI applications using ansible playbooks',
     long_description=get_long_description(),
     long_description_content_type='text/markdown',
     url='https://github.com/theforeman/obsah',
@@ -58,7 +58,7 @@ setup(
         'Programming Language :: Python :: 3.14',
     ],
 
-    keywords='ansible foreman packaging koji brew mock',
+    keywords='ansible cli',
 
     packages=find_packages(exclude=['contrib', 'docs']),
 
