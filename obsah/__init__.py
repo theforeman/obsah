@@ -383,8 +383,9 @@ class ObsahArgumentParser(argparse.ArgumentParser):
             message += "\n"
         super().exit(status, message)
 
-    def format_usage(self):
-        return super().format_help()
+    def error(self, message):
+        self.exit(2, f"\n{self.prog}: error: {message}\n"
+                     f"Try '{self.prog} -h/--help' for all available options and their usage.\n\n")
 
 
 def find_targets(inventory_path) -> Optional[Iterable]:
