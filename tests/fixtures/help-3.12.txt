@@ -2,6 +2,7 @@ usage: obsah [-h] action ...
 
 positional arguments:
   action                which action to execute
+    choices_file
     dummy               Short description
     include_child
     include_cycle_a
