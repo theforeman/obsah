@@ -371,6 +371,40 @@ class ApplicationConfig(object):
         """
         return os.environ.get('ANSIBLE_LOG_PATH')
 
+class ObsahHelpFormatter(argparse.RawDescriptionHelpFormatter):
+    """
+    Help formatter that keeps option help on the same line for long options.
+
+    The default argparse formatter moves help text for long options to the next
+    line. That makes commands such as
+    `foremanctl deploy --help | grep initial-location` show only the option name
+    and not the persisted/current value. Use a wider formatter so the option,
+    description and current value stay together in grep-friendly output.
+    """
+    def __init__(self, prog):
+        super().__init__(prog, max_help_position=80, width=240)
+
+
+def playbook_usage(application_name, playbook):
+    """
+    Return concise subcommand usage.
+
+    argparse's default usage line lists every optional argument. That makes
+    `command --help | grep -- --some-option` match the usage synopsis in
+    addition to the actual option description. Keep optional arguments grouped
+    as [options] so grepping for one option returns only its detailed help line.
+    """
+    parts = [application_name, playbook.name, '[options]']
+    parts.extend(
+        variable.parameter
+        for variable in playbook.playbook_variables
+        if not variable.parameter.startswith('--')
+    )
+    if playbook.takes_target_parameter:
+        parts.append('target [target ...]')
+    return ' '.join(parts)
+
+
 class ObsahArgumentParser(argparse.ArgumentParser):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -456,14 +490,17 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
         subparser = subparsers.add_parser(playbook.name, parents=[parent_parser],
                                           help=playbook.help_text,
                                           description=playbook.description,
-                                          formatter_class=argparse.RawDescriptionHelpFormatter)
+                                          usage=playbook_usage(application_config.name(), playbook),
+                                          formatter_class=ObsahHelpFormatter)
         data_types.register_types(subparser)
         subparser.set_defaults(playbook=playbook)
         has_resettable_persisted_params = False
+        persist_params = {}
+
         if application_config.persist_params():
             with contextlib.suppress(FileNotFoundError):
                 with open(application_config.persist_path()) as persist_file:
-                    persist_params = yaml.safe_load(persist_file)
+                    persist_params = yaml.safe_load(persist_file) or {}
                 if persist_params:
                     subparser.set_defaults(**persist_params)
 
@@ -487,7 +524,13 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
 
             if application_config.persist_params() and variable.parameter.startswith('--') and variable.persist:
                 base_help = argument_args.get('help') or ''
-                argument_args['help'] = f"{base_help} (persisted)".strip()
+                help_parts = [base_help, '(persisted)']
+
+                persist_key = variable.dest or variable.name
+                if persist_key in persist_params:
+                    help_parts.append(f'(current: {format_current_value(persist_params[persist_key])})')
+
+                argument_args['help'] = ' '.join(part for part in help_parts if part).strip()
 
             subparser.add_argument(variable.parameter, **argument_args)
             parser.obsah_arguments.append(variable.name)
@@ -511,6 +554,10 @@ def obsah_argument_parser(application_config=ApplicationConfig, playbooks=None, 
         argcomplete.autocomplete(parser)
 
     return parser
+
+
+def format_current_value(value):
+    return json.dumps(value)
 
 
 def generate_ansible_args(inventory_path, args, obsah_arguments):
