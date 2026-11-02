@@ -225,7 +225,16 @@ class Playbook(object):
             except KeyError:
                 parameter = '--{}'.format(name.removeprefix(namespace).replace('_', '-'))
 
-            yield Variable(name, parameter, options.get('help'), options.get('action'), options.get('type'), options.get('choices'), options.get('dest'), options.get('persist', True))
+            choices = options.get('choices')
+            if choices is not None:
+                choices_override = os.path.join(os.path.dirname(self._metadata_path), 'choices.d', '{}.yaml'.format(name))
+                try:
+                    with open(choices_override) as f:
+                        choices = yaml.safe_load(f)
+                except FileNotFoundError:
+                    pass
+
+            yield Variable(name, parameter, options.get('help'), options.get('action'), options.get('type'), choices, options.get('dest'), options.get('persist', True))
 
     @property
     def __doc__(self):
