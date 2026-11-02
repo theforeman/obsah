@@ -34,7 +34,7 @@ def find_package_data(package, data_dir):
 
 setup(
     name='obsah',
-    version='1.11.1',
+    version='1.12.0',
     license='GPL-2.0-only',
     description='easily build CLI applications using ansible playbooks',
     long_description=get_long_description(),
