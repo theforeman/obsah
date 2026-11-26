@@ -131,22 +131,40 @@ class Playbook(object):
             data = {}
         return data
 
-    def _resolve_includes(self, data, visited=None):
+    def _resolve_includes(self, data, visited=None, root=None, source=None):
         """
         Recursively resolve includes, merging variables and constraints.
         """
         if visited is None:
-            visited = set()
+            visited = {os.path.realpath(self._metadata_path)}
+        if root is None:
+            root = self.application_config.playbooks_path()
+        if source is None:
+            source = self._metadata_path
 
         for include in data.get('include', []):
-            if include in visited:
+            include_root = root
+            if isinstance(include, str):
+                include_path = os.path.join(root, include, self.application_config.metadata_name())
+            elif isinstance(include, Mapping) and {'path', 'root'} <= include.keys():
+                directory = os.path.dirname(source)
+                include_path = os.path.abspath(os.path.join(directory, include['path']))
+                include_root = os.path.abspath(os.path.join(directory, include['root']))
+                if not os.path.isfile(include_path):
+                    raise FileNotFoundError(f"Included metadata file does not exist: {include_path}")
+            else:
+                raise ValueError("Metadata includes must be names or mappings containing 'path' and 'root'")
+            identity = os.path.realpath(include_path)
+            if identity in visited:
                 continue
-            visited.add(include)
-            include_path = os.path.join(self.application_config.playbooks_path(), include, self.application_config.metadata_name())
+            visited.add(identity)
             include_data = self._load_metadata_file(include_path)
-            self._resolve_includes(include_data, visited)
+            self._resolve_includes(include_data, visited, root=include_root, source=include_path)
             data['variables'] = _merge_variables(data.get('variables', {}), include_data.get('variables', {}))
             data['constraints'] = _merge_constraints(data.get('constraints', {}), include_data.get('constraints', {}))
+            for rule in include_data.get('reset', []):
+                if rule not in data.setdefault('reset', []):
+                    data['reset'].append(rule)
 
     @property
     def metadata(self) -> Mapping[str, Any]:
