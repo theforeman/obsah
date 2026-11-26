@@ -373,6 +373,25 @@ You can reuse variables and constraints from other playbooks using the ``include
 
 This will merge the ``variables`` and ``constraints`` from the ``common`` and ``database`` playbook metadata into the current playbook.
 
+To reuse metadata from a different playbook tree, use an explicit file import:
+
+.. code-block:: yaml
+
+    include:
+      - path: ../../../production/playbooks/deploy/metadata.obsah.yaml
+        root: ../../../production/playbooks
+
+Both paths are relative to the metadata file containing the import. ``path``
+identifies the metadata file and ``root`` identifies the playbook directory used
+to resolve its named includes. Nested imports keep their own resolution context,
+so equally named fragments in different trees do not collide. Absolute paths
+are also supported. A missing explicit file is an error; named optional includes
+retain their existing behavior.
+
+Imports merge variables, constraints, and parameter reset rules. Importing
+metadata does not expose commands from the other tree and does not execute any
+playbooks. Use Ansible's ``import_playbook`` separately to compose execution.
+
 Resetting Persisted Parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
